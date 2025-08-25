@@ -1,0 +1,389 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Video {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  title        String?  // Título em português (pt)
+  title_en     String?  // Título em inglês
+  title_es     String?  // Título em espanhol
+  category     String[]
+  description  String?
+  description_en     String?  // Título em inglês
+  description_es     String?  // Título em espanhol
+  url          String   @unique
+  url_en       String?  // Título em inglês
+  url_es       String?  // Título em espanhol
+  viewCount    Int
+  likesCount   Int
+  videoUrl     String
+  thumbnailUrl String
+  duration     Float?
+  premium      Boolean
+  creator      String?
+  iframe       Boolean @default(false)
+  trailerUrl   String?
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @default(now())
+  userId       String?  @db.ObjectId
+  User         User?    @relation(fields: [userId], references: [id])
+  comments     Comment[]
+  likes        UserLike[]
+  favorites    UserFavorite[]
+  history      UserHistory[]
+  videoTags    VideoTag[] @relation("VideoToTags")
+}
+
+model Tag {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String    @unique
+  qtd       Int       @default(0)
+  slug       String   @unique   
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+  videoTags VideoTag[] @relation("TagToVideos")
+}
+
+model VideoTag {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId  String   @db.ObjectId
+  tagId    String   @db.ObjectId
+  video    Video    @relation(fields: [videoId], references: [id], name: "VideoToTags")
+  tag      Tag      @relation(fields: [tagId], references: [id], name: "TagToVideos")
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId   String   @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+  video     Video    @relation(fields: [videoId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+}
+
+model Category {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+  qtd Int?
+  images String?
+  slug String? @unique
+  created_at DateTime? @default(now())
+  updated_at DateTime? @default(now())
+
+  userId String? @db.ObjectId
+  User User? @relation(fields: [userId], references: [id])
+}
+
+model Creator {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+  qtd Int?
+  description   String?
+  image     String?
+  created_at DateTime? @default(now())
+  update_at DateTime? @default(now())
+
+  userId String? @db.ObjectId
+  User User? @relation(fields: [userId], references: [id])
+}
+
+model Account {
+  id                 String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String  @db.ObjectId
+  type               String
+  provider           String
+  providerAccountId  String  @map("provider_account_id")
+  refresh_token      String? @db.String
+  access_token       String? @db.String
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.String
+  session_state      String?
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+ 
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@map("sessions")
+}
+ 
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  username      String?   @unique
+  email         String?   @unique
+  password      String? 
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  resetToken          String?  // Campo opcional para o token de redefinição
+  resetTokenExpiration DateTime? // Campo opcional para a expiração do token
+  access        Int  @default(0)
+  premium       Boolean  @default(false)
+  paymentId     Int?
+  preferenceId  String?
+  paymentQrCodeUrl String?
+  paymentStatus String?
+  paymentType   String?
+  promotionId   String?
+  affiliateId   String?  @db.ObjectId // ID do afiliado (usuário que indicou)
+  chavePix      String?
+  promotionCode String?
+  signupSource  String?  // Adicionando o campo signupSource
+  tempPassword  Boolean  @default(false) // Flag para senha temporária
+
+  created_at    DateTime? @default(now())
+  update_at     DateTime? @default(now())
+
+  paymentDate   DateTime?
+  expireDate    DateTime?
+
+  likes         UserLike[]
+  favorites     UserFavorite[]
+  history       UserHistory[]
+  categories    Category[]
+  videos        Video[]
+  comments      Comment[]
+  payments      Payment[]
+  creators      Creator[]
+  affiliateSales Affiliate[] @relation("AffiliateSales") // Relacionamento com vendas de afiliado
+  referredUsers Affiliate[] @relation("ReferredUsers") // Relacionamento com usuários indicados
+  withdrawalRequests WithdrawalRequest[] @relation("WithdrawalAffiliate")
+  promotions  Promotion[]  // Um usuário pode ter várias promoções
+  campaignTracking CampaignTracking[] // Relacionamento com tracking de campanhas
+  campaignConversions CampaignConversion[] // Relacionamento com conversões de campanhas
+  paymentSessions PaymentSession[] // Relacionamento com sessões de pagamento
+  affiliateSessions PaymentSession[] @relation("AffiliateSessions") // Relacionamento com sessões de pagamento como afiliado
+
+  @@map("users")
+}
+
+model Promotion {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?        @db.ObjectId // ID do usuário que usou a promoção (opcional)
+  slug      String         @unique // Identificador único para a URL da promoção
+  plan         String
+  name      String         // Nome da promoção para exibição
+  amount       Float
+  status    PromotionStatus // Enum para status da promoção (ex.: "ATIVA", "EXPIRADA")
+  paymentId Int?           // ID de referência do pagamento, se houver
+  createdAt DateTime       @default(now()) // Data de criação da promoção
+
+  // Relacionamento
+  user      User?          @relation(fields: [userId], references: [id])
+
+  @@map("promotions") // Nome da tabela no banco de dados
+}
+
+enum PromotionStatus {
+  ATIVA
+  EXPIRADA
+}
+
+
+model Affiliate {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId // Usuário que comprou
+  affiliateId  String   @db.ObjectId // Usuário que indicou
+  amount       Float    // Valor da venda
+  commission   Float    // Comissão para o afiliado
+  status       String   // Status da venda (pago, pendente, etc.)
+  paymentId    Int?
+  created_at   DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id], name: "AffiliateSales")
+  affiliate    User     @relation(fields: [affiliateId], references: [id], name: "ReferredUsers")
+
+  @@map("affiliates")
+}
+
+model WithdrawalRequest {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  affiliateId  String   @db.ObjectId
+  amount       Float
+  status       String   // Status do saque (pendente, aprovado, rejeitado)
+  created_at   DateTime @default(now())
+
+  affiliate    User     @relation(fields: [affiliateId], references: [id], name: "WithdrawalAffiliate")
+
+  @@map("withdrawal_requests")
+}
+
+model Payment {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  plan         String
+  amount       Float
+  transactionDate DateTime @default(now())
+  userEmail    String
+  status       String
+  paymentId    Int?     @unique
+  duration     Int?
+  promotionCode String?
+  preferenceId String?  @unique
+  affiliateId  String?  @db.ObjectId
+  campaignId   String? // ID da campanha quando pagamento via campanha
+
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@map("payments")
+}
+
+model PaymentSession {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  plan         String   // Tipo do plano (monthly, quarterly, semiannual, annual, lifetime)
+  amount       Float    // Valor do pagamento
+  userId       String   @db.ObjectId // ID do usuário
+  status       String   @default("pending") // Status da sessão (pending, paid, cancelled, expired)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  paymentId    Int?     // ID do pagamento quando confirmado
+  preferenceId String?  @unique // ID da preferência (Mercado Pago) ou session ID (Stripe)
+  paymentMethod String? // Método de pagamento (stripe, mercadopago)
+  userEmail    String?  // Email do usuário
+  description  String?  // Descrição do plano
+  duration     Int?     // Duração em dias
+  promotionCode String? // Código de promoção se aplicável
+  affiliateId  String?  @db.ObjectId // ID do afiliado se aplicável
+  campaignId   String?  // ID da campanha se aplicável
+  
+  // Relacionamentos
+  user         User     @relation(fields: [userId], references: [id])
+  affiliate    User?    @relation("AffiliateSessions", fields: [affiliateId], references: [id])
+  
+  @@map("payment_sessions")
+}
+
+
+model UserLike {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String @db.ObjectId
+  videoId String @db.ObjectId
+  user    User  @relation(fields: [userId], references: [id])
+  video   Video @relation(fields: [videoId], references: [id])
+
+  @@unique([userId, videoId]) // Garante que cada combinação de userId e videoId seja única
+}
+
+model UserFavorite {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String @db.ObjectId
+  videoId String @db.ObjectId
+  user    User  @relation(fields: [userId], references: [id])
+  video   Video @relation(fields: [videoId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, videoId]) // Garante que cada combinação de userId e videoId seja única
+}
+
+model UserHistory {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String @db.ObjectId
+  videoId String @db.ObjectId
+  user    User  @relation(fields: [userId], references: [id])
+  video   Video @relation(fields: [videoId], references: [id])
+  watchedAt DateTime @default(now())
+  watchDuration Int? // Duração em segundos que o usuário assistiu
+
+  @@unique([userId, videoId]) // Garante que cada combinação de userId e videoId seja única
+}
+
+model CampaignTracking {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  source      String   // Fonte da campanha (ex: pornocarioca.com)
+  campaign    String   // Nome da campanha (ex: xclickads)
+  timestamp   DateTime @default(now())
+  userAgent   String   // User agent do navegador
+  referrer    String   // URL de referência
+  utm_source  String?  // UTM source
+  utm_medium  String?  // UTM medium
+  utm_campaign String? // UTM campaign
+  utm_term    String?  // UTM term
+  utm_content String?  // UTM content
+  ipAddress   String   // IP do usuário
+  pageUrl     String   // URL da página
+  converted   Boolean  @default(false) // Se converteu em assinatura
+  convertedAt DateTime? // Quando converteu
+  userId      String?  @db.ObjectId // ID do usuário se convertido
+  User        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([source, campaign])
+  @@index([timestamp])
+  @@index([converted])
+  @@map("campaign_tracking")
+}
+
+model CampaignConversion {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  source      String   // Fonte da campanha
+  campaign    String   // Nome da campanha
+  planId      String?  // ID do plano escolhido
+  amount      Float    // Valor da conversão
+  convertedAt DateTime @default(now())
+  User        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([source, campaign])
+  @@index([convertedAt])
+  @@map("campaign_conversions")
+}
+
+model ContentRemovalRequest {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  urls              String   // URLs do conteúdo a ser removido
+  category          String   // Categoria da denúncia
+  motivation        String   // Motivação da denúncia
+  requesterName     String   // Nome do solicitante
+  requesterEmail    String   // Email do solicitante
+  requesterAddress  String?  // Endereço do solicitante
+  requesterPhone    String   // Telefone do solicitante
+  requestDate       DateTime // Data da solicitação
+  signature         String   // Assinatura digital
+  status            String   @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  adminNotes        String?  // Notas do administrador
+  processedAt       DateTime? // Data de processamento
+  processedBy       String?  @db.ObjectId // ID do admin que processou
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("content_removal_requests")
+}
+ 
+model VerificationToken {
+  identifier String @id @default(auto()) @map("_id") @db.ObjectId
+  token      String @unique
+  expires    DateTime
+ 
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
