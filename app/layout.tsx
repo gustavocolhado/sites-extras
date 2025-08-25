@@ -3,7 +3,7 @@ import Script from 'next/script'
 import './globals.css'
 import Providers from '@/components/Providers'
 import DynamicMetadata from '@/components/DynamicMetadata'
-import { getServerDomainConfig, generateMetadata as generateDomainMetadata } from '@/lib/domain'
+import { getServerDomainConfig, generateDomainMetadata } from '@/lib/domain'
 
 // Generate metadata based on current domain
 export async function generateMetadata(): Promise<Metadata> {
