@@ -13,30 +13,6 @@ export interface DomainConfig {
 }
 
 export const domainConfigs: Record<string, DomainConfig> = {
-  'confissoesdecorno.com': {
-    name: 'Confissões de Corno',
-    title: 'CONFISSÕES DE CORNO - Histórias Reais de Cornos Brasileiros',
-    description: 'Confissões reais de cornos brasileiros. Histórias verdadeiras de traição, sexo amador e confissões íntimas. CONFISSÕES DE CORNO - O site das confissões mais quentes.',
-    keywords: [
-      'confissões de corno',
-      'histórias de corno',
-      'confissões reais',
-      'traição brasileira',
-      'sexo amador',
-      'confissões íntimas',
-      'cornos brasileiros',
-      'histórias reais',
-      'confissões quentes',
-      'traição real'
-    ],
-    logo: '/imgs/logo-confissoes.png',
-    favicon: '/favicon-confissoes.png',
-    primaryColor: '#e74c3c',
-    theme: 'dark',
-    canonical: 'https://confissoesdecorno.com',
-    ogImage: '/imgs/og-confissoes.jpg',
-    siteName: 'CONFISSÕES DE CORNO'
-  },
   'cornofilmando.com': {
     name: 'Corno Filmando',
     title: 'CORNO FILMANDO - Videos de Cornos Filmando suas Mulheres',

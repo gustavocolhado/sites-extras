@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 
 // Lista de todos os domínios suportados
 const supportedDomains = [
-  'confissoesdecorno.com',
   'cornofilmando.com',
   'cornomanso.com.br',
   'cornoplay.com',

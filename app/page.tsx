@@ -6,7 +6,7 @@ import Creators from '@/components/Creators'
 import VideoSection from '@/components/VideoSection'
 import PremiumBanner from '@/components/PremiumBanner'
 import SEOHead from '@/components/SEOHead'
-import DomainDebug from '@/components/DomainDebug'
+
 import { useSession } from 'next-auth/react'
 import { usePremiumStatus } from '@/hooks/usePremiumStatus'
 import Section from '@/components/Section'
@@ -73,7 +73,6 @@ export default function Home() {
             </div>
           </Section>
         </main>
-        <DomainDebug />
       </Layout>
     </>
   )

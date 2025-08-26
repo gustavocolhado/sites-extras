@@ -20,7 +20,8 @@
     "test-revenue-simple": "node scripts/test-revenue-simple.js",
     "test-media-url": "node scripts/test-media-url.js",
     "test-premium-videos": "node scripts/test-premium-videos.js",
-    "populate-test-revenue": "node scripts/populate-test-revenue.js"
+    "populate-test-revenue": "node scripts/populate-test-revenue.js",
+    "generate-logos": "node scripts/generate-logos.js"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

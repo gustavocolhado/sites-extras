@@ -60,7 +60,7 @@ Os seguintes componentes foram atualizados para usar a configuração dinâmica:
 - `Logo.tsx` - Logo específico do domínio
 - `SEOHead.tsx` - Meta tags dinâmicas
 - `DynamicMetadata.tsx` - Atualização de metadata no cliente
-- `DomainDebug.tsx` - Debug visual (apenas desenvolvimento)
+
 
 ## Uso
 
@@ -152,16 +152,7 @@ No Tailwind CSS:
 
 3. Teste com o script: `node scripts/test-domains.js`
 
-## Debug
 
-Para debug, o componente `DomainDebug` mostra informações do domínio atual:
-
-```typescript
-import DomainDebug from '@/components/DomainDebug'
-
-// Adicione em qualquer página para debug
-<DomainDebug />
-```
 
 ## Fallback
 
@@ -188,6 +179,5 @@ lib/
   domain.ts          # Utilitários do servidor
 components/
   DynamicMetadata.tsx # Metadata dinâmica
-  DomainDebug.tsx    # Debug visual
 middleware.ts        # Middleware de detecção
 ```

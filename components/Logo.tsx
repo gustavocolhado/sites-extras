@@ -24,7 +24,7 @@ export default function Logo() {
         src={logoSrc}
         alt={altText}
         width={180}
-        height={180}
+        height={70}
         className="w-full"
         priority
       />
