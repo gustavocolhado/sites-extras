@@ -38,7 +38,7 @@ const plans: Plan[] = [
   {
     id: 'monthly',
     name: 'Mensal',
-    price: 19.90,
+    price: 1.00,
     period: 'mês',
     description: 'Acesso completo por 1 mês'
   },
