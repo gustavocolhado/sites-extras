@@ -13,6 +13,8 @@ interface PixData {
   qr_code: string
   qr_code_base64: string
   expires_at: string
+  payment_id?: string
+  provider?: string
 }
 
 export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPaymentProps) {
