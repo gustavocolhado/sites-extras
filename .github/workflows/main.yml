@@ -1,0 +1,126 @@
+name: 🚀 Deploy website on push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  web-deploy:
+    name: 🎉 Atualizaçao
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v2
+
+      - name: 📂 Sync files to FTP Server 1
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_CORNO_VIDEOS }}
+          password: ${{ secrets.PASS_CORNO_VIDEOS }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 2
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_VIDEOS_DE_CORNO }}
+          password: ${{ secrets.PASS_VIDEOS_DE_CORNO }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 3
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_CORNOS_VIP }}
+          password: ${{ secrets.PASS_CORNOS_VIP }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 4
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_CORNO_FILMANDO }}
+          password: ${{ secrets.PASS_CORNO_FILMANDO }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 5
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_CORNO_MANSO }}
+          password: ${{ secrets.PASS_CORNO_MANSO }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 6
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_CORNO_TUBE }}
+          password: ${{ secrets.PASS_CORNO_TUBE }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 7
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_MARIDO_CORNO }}
+          password: ${{ secrets.PASS_MARIDO_CORNO }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 8
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_MULHER_DE_CORNO }}
+          password: ${{ secrets.PASS_MULHER_DE_CORNO }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 9
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_ESPOSA_DE_CORNO }}
+          password: ${{ secrets.PASS_ESPOSA_DE_CORNO }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 10
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_ESPOSA_GOZANDO }}
+          password: ${{ secrets.PASS_ESPOSA_GOZANDO }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 11
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_CORNO_PLAY }}
+          password: ${{ secrets.PASS_CORNO_PLAY }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 12
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_CORNOS_TV }}
+          password: ${{ secrets.PASS_CORNOS_TV }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 13
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_ESPOSA_SAFADA }}
+          password: ${{ secrets.PASS_ESPOSA_SAFADA }}
+          server-dir: /
+
+      - name: 📂 Sync files to FTP Server 14
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.USER_MULHER_DO_CORNO }}
+          password: ${{ secrets.PASS_MULHER_DO_CORNO }}
+          server-dir: /
