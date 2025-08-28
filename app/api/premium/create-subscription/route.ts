@@ -26,7 +26,7 @@ interface CreateSubscriptionRequest {
 const planData = {
   monthly: {
     name: 'Premium Mensal',
-    price: 1990, // R$ 29,90 em centavos
+    price: 100, // R$ 29,90 em centavos
     description: 'Acesso completo por 1 mês'
   },
   quarterly: {
