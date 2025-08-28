@@ -40,7 +40,27 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
         }
 
         const data = await response.json()
+        console.log('📊 Dados PIX recebidos:', data)
+        console.log('🔍 Verificando campos do QR Code:', {
+          hasQRCode: !!data.qr_code,
+          hasQRCodeBase64: !!data.qr_code_base64,
+          qrCodeLength: data.qr_code?.length,
+          qrCodeBase64Length: data.qr_code_base64?.length,
+          qrCodeType: typeof data.qr_code,
+          qrCodeBase64Type: typeof data.qr_code_base64,
+          provider: data.provider,
+          qrCodeBase64Start: data.qr_code_base64?.substring(0, 50) + '...',
+          fullData: data
+        })
         setPixData(data)
+        
+        // Log quando pixData é definido
+        console.log('🎯 PixPayment - Dados definidos:', {
+          hasQRCode: !!data.qr_code,
+          hasQRCodeBase64: !!data.qr_code_base64,
+          qrCodeBase64Length: data.qr_code_base64?.length,
+          provider: data.provider
+        })
         
         // Calcular tempo restante
         const expiresAt = new Date(data.expires_at).getTime()
@@ -223,11 +243,53 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
       {/* QR Code */}
       <div className="flex justify-center mb-8">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-          <img
-            src={`data:image/png;base64,${pixData.qr_code_base64}`}
-            alt="QR Code PIX"
-            className="w-56 h-56"
-          />
+          {(() => {
+            console.log('🎨 Renderizando QR Code:', {
+              hasQRCodeBase64: !!pixData.qr_code_base64,
+              qrCodeBase64Length: pixData.qr_code_base64?.length,
+              qrCodeBase64Start: pixData.qr_code_base64?.substring(0, 30) + '...'
+            })
+            
+                         if (pixData.qr_code_base64) {
+               // Verificar se o base64 já tem o prefixo data:image/png;base64,
+               const base64Data = pixData.qr_code_base64.startsWith('data:image/png;base64,') 
+                 ? pixData.qr_code_base64 
+                 : `data:image/png;base64,${pixData.qr_code_base64}`
+               
+               console.log('🔧 Base64 processado:', {
+                 original: pixData.qr_code_base64.substring(0, 50) + '...',
+                 processed: base64Data.substring(0, 50) + '...',
+                 hasPrefix: pixData.qr_code_base64.startsWith('data:image/png;base64,')
+               })
+               
+               return (
+                 <img
+                   src={base64Data}
+                   alt="QR Code PIX"
+                   className="w-56 h-56"
+                   onLoad={() => console.log('✅ QR Code carregado com sucesso')}
+                   onError={(e) => {
+                     console.error('❌ Erro ao carregar QR Code:', e)
+                     console.error('❌ Dados do QR Code:', {
+                       length: pixData.qr_code_base64?.length,
+                       start: pixData.qr_code_base64?.substring(0, 50),
+                       processedLength: base64Data?.length
+                     })
+                     e.currentTarget.style.display = 'none'
+                   }}
+                 />
+               )
+             } else {
+              console.log('❌ QR Code base64 não disponível')
+              return (
+                <div className="w-56 h-56 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
+                  <p className="text-gray-500 dark:text-gray-400 text-center">
+                    QR Code não disponível
+                  </p>
+                </div>
+              )
+            }
+          })()}
         </div>
       </div>
 
@@ -239,13 +301,14 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
         <div className="flex">
           <input
             type="text"
-            value={pixData.qr_code}
+            value={pixData.qr_code || 'Código PIX não disponível'}
             readOnly
             className="flex-1 px-4 py-3 border border-theme-border-primary rounded-l-xl bg-theme-hover text-sm font-mono text-theme-primary"
           />
           <button
             onClick={copyPixCode}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-r-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-md hover:shadow-lg"
+            disabled={!pixData.qr_code}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-r-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
           </button>
@@ -254,6 +317,12 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
           <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm mt-2">
             <Check className="w-4 h-4" />
             <span className="font-medium">Código copiado!</span>
+          </div>
+        )}
+        {!pixData.qr_code && (
+          <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 text-sm mt-2">
+            <AlertCircle className="w-4 h-4" />
+            <span className="font-medium">Código PIX não foi gerado</span>
           </div>
         )}
       </div>

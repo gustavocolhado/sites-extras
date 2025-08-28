@@ -36,7 +36,7 @@ export default function SearchPage() {
     search: searchTerm,
     filter,
     page: currentPage,
-    limit: 12,
+    limit: 50,
     isPremium
   })
 
@@ -84,10 +84,10 @@ export default function SearchPage() {
         <Header />
         
         <div className="min-h-screen bg-gradient-to-br from-theme-background via-theme-card to-theme-primary/5">
-          <div className="container mx-auto px-4 py-8">
+          <div className="container-content mx-auto px-4 py-8">
             
             {/* Header da Busca */}
-            <div className="mb-8">
+            <div className="mb-8 mt-8">
               <h1 className="text-3xl font-bold text-theme-primary mb-4">
                 {searchTerm ? `Resultados para: "${searchTerm}"` : 'Buscar Vídeos'}
               </h1>
@@ -242,7 +242,7 @@ export default function SearchPage() {
               </div>
             ) : (
               /* Resultados da busca */
-              <div>
+              <div className="mb-8">
                 {loading ? (
                   <div className="flex items-center justify-center py-16">
                     <div className="text-center">
@@ -281,7 +281,7 @@ export default function SearchPage() {
                 ) : (
                   <>
                     {/* Grid de Vídeos */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1 mb-8">
                       {videos.map((video) => (
                         <VideoCard 
                           key={video.id} 
@@ -315,7 +315,6 @@ export default function SearchPage() {
           </div>
         </div>
         
-        <Footer />
       </Layout>
     </>
   )

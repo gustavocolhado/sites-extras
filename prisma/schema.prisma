@@ -378,6 +378,21 @@ model ContentRemovalRequest {
   @@index([createdAt])
   @@map("content_removal_requests")
 }
+
+model PaymentSettings {
+  id                        String   @id @default(auto()) @map("_id") @db.ObjectId
+  activeProvider            String   @default("mercadopago") // mercadopago, pushinpay
+  mercadopagoEnabled        Boolean  @default(true)
+  mercadopagoAccessToken    String?  // Access token do Mercado Pago
+  mercadopagoWebhookUrl     String?  // URL do webhook do Mercado Pago
+  pushinpayEnabled          Boolean  @default(false)
+  pushinpayAccessToken      String?  // Access token do Pushin Pay
+  pushinpayWebhookUrl       String?  // URL do webhook do Pushin Pay
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@map("payment_settings")
+}
  
 model VerificationToken {
   identifier String @id @default(auto()) @map("_id") @db.ObjectId

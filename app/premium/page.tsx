@@ -21,6 +21,7 @@ import PixPayment from '@/components/PixPayment'
 import Footer from '@/components/Footer'
 import { useCountry } from '@/hooks/useCountry'
 import CurrencySelector from '@/components/CurrencySelector'
+import PushinPayDisclaimer from '@/components/PushinPayDisclaimer'
 
 interface Plan {
   id: string
@@ -113,6 +114,7 @@ export default function PremiumPage() {
   const [error, setError] = useState<string | null>(null)
   const [preferenceId, setPreferenceId] = useState<string | null>(null)
   const [campaignData, setCampaignData] = useState<any>(null)
+  const [activePaymentProvider, setActivePaymentProvider] = useState<'mercadopago' | 'pushinpay'>('mercadopago')
 
   // Capturar dados da campanha da URL
   useEffect(() => {
@@ -149,6 +151,23 @@ export default function PremiumPage() {
       router.push('/api/auth/signin')
     }
   }, [status, router])
+
+  // Buscar provedor de pagamento ativo
+  useEffect(() => {
+    const fetchPaymentProvider = async () => {
+      try {
+        const response = await fetch('/api/admin/payment-settings')
+        if (response.ok) {
+          const data = await response.json()
+          setActivePaymentProvider(data.activeProvider)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar provedor de pagamento:', error)
+      }
+    }
+
+    fetchPaymentProvider()
+  }, [])
 
   const handlePlanSelect = (plan: Plan) => {
     setSelectedPlan(plan)
@@ -454,6 +473,13 @@ export default function PremiumPage() {
                   {error && (
                     <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 mb-6">
                       <p className="text-red-500 text-sm">{error}</p>
+                    </div>
+                  )}
+
+                  {/* Aviso do Pushin Pay */}
+                  {activePaymentProvider === 'pushinpay' && paymentMethod === 'pix' && (
+                    <div className="mb-6">
+                      <PushinPayDisclaimer />
                     </div>
                   )}
 

@@ -17,7 +17,8 @@ import {
   UserPlus,
   Tag,
   FolderOpen,
-  AlertTriangle
+  AlertTriangle,
+  CreditCard
 } from 'lucide-react'
 
 const menuItems = [
@@ -35,6 +36,11 @@ const menuItems = [
     title: 'Pagamentos',
     href: '/admin/payments',
     icon: DollarSign
+  },
+  {
+    title: 'Config. Pagamento',
+    href: '/admin/payment-settings',
+    icon: CreditCard
   },
   {
     title: 'Campanhas',

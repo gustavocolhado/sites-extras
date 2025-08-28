@@ -4,24 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "update-vip-categories": "node scripts/update-vip-categories.js",
-    "update-vip-categories-dry-run": "node scripts/update-vip-categories-dry-run.js",
-    "test-vip-premium": "node scripts/test-vip-premium.js",
-    "test-vip-amadores": "node scripts/test-vip-amadores.js",
-    "debug-vip": "node scripts/debug-vip-categories.js",
-    "populate-categories": "node scripts/populate-categories.js",
-    "check-vip-amadores": "node scripts/check-vip-amadores-category.js",
-    "test-navigation": "node scripts/test-navigation.js",
-    "test-admin-stats": "node scripts/test-admin-stats.js",
-    "test-revenue": "node scripts/test-revenue.js",
-    "test-revenue-simple": "node scripts/test-revenue-simple.js",
-    "test-media-url": "node scripts/test-media-url.js",
-    "test-premium-videos": "node scripts/test-premium-videos.js",
-    "populate-test-revenue": "node scripts/populate-test-revenue.js",
-    "generate-logos": "node scripts/generate-logos.js"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
