@@ -114,16 +114,26 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
         }
 
         // Como fallback, verificar o status premium do usuário
+        // Mas só considerar se o pagamento específico foi processado
         const userResponse = await fetch('/api/premium/check-user-status')
         if (userResponse.ok) {
           const userData = await userResponse.json()
           console.log('👤 Status do usuário:', userData)
           
-          if (userData.isActive) {
-            console.log('✅ Usuário tem premium ativo! Redirecionando...')
-            setPaymentStatus('approved')
-            setTimeout(() => onSuccess(), 2000)
-            return
+          // Só considerar aprovado se o usuário tem premium E o pagamento foi processado recentemente
+          if (userData.isActive && userData.paymentDate) {
+            const paymentDate = new Date(userData.paymentDate)
+            const now = new Date()
+            const timeDiff = now.getTime() - paymentDate.getTime()
+            const minutesDiff = timeDiff / (1000 * 60)
+            
+            // Só considerar se o pagamento foi feito nos últimos 10 minutos
+            if (minutesDiff < 10) {
+              console.log('✅ Usuário tem premium ativo e pagamento recente! Redirecionando...')
+              setPaymentStatus('approved')
+              setTimeout(() => onSuccess(), 2000)
+              return
+            }
           }
         }
         

@@ -52,14 +52,15 @@ export async function POST(request: NextRequest) {
       select: { premium: true, expireDate: true }
     })
 
-    // Se o usuário tem premium ativo, considerar como aprovado
-    if (user?.premium && user?.expireDate && new Date(user.expireDate) > new Date()) {
+    // Só considerar aprovado se o PaymentSession específico foi pago
+    // Não considerar aprovado apenas por ter premium ativo
+    if (paymentSession.status === 'paid') {
       return NextResponse.json({
         status: 'approved',
         payment_id: paymentSession.paymentId,
         amount: paymentSession.amount,
         plan: paymentSession.plan,
-        message: 'Pagamento aprovado e premium ativo',
+        message: 'Pagamento confirmado',
         is_verification_only: true
       })
     }
