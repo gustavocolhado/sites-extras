@@ -81,9 +81,15 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
   useEffect(() => {
     if (!preferenceId || paymentStatus !== 'pending') return
 
+    let checkCount = 0
+    const maxChecks = 60 // Máximo 5 minutos (60 * 5 segundos)
+
     const checkPaymentStatus = async () => {
       try {
-        const response = await fetch('/api/premium/check-payment-status', {
+        console.log(`🔍 Verificando status do pagamento (tentativa ${checkCount + 1}/${maxChecks})`)
+        
+        // Primeiro, verificar o status do pagamento específico
+        const paymentResponse = await fetch('/api/premium/check-payment-status', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -91,22 +97,51 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
           body: JSON.stringify({ preferenceId }),
         })
 
-        if (response.ok) {
-          const data = await response.json()
-          if (data.status === 'approved') {
+        if (paymentResponse.ok) {
+          const paymentData = await paymentResponse.json()
+          console.log('📊 Status do pagamento:', paymentData)
+          
+          if (paymentData.status === 'approved' || paymentData.status === 'paid') {
+            console.log('✅ Pagamento aprovado! Redirecionando...')
             setPaymentStatus('approved')
             setTimeout(() => onSuccess(), 2000)
-          } else if (data.status === 'rejected') {
+            return
+          } else if (paymentData.status === 'rejected' || paymentData.status === 'cancelled') {
+            console.log('❌ Pagamento rejeitado')
             setPaymentStatus('rejected')
+            return
           }
+        }
+
+        // Como fallback, verificar o status premium do usuário
+        const userResponse = await fetch('/api/premium/check-user-status')
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          console.log('👤 Status do usuário:', userData)
+          
+          if (userData.isActive) {
+            console.log('✅ Usuário tem premium ativo! Redirecionando...')
+            setPaymentStatus('approved')
+            setTimeout(() => onSuccess(), 2000)
+            return
+          }
+        }
+        
+        checkCount++
+        if (checkCount >= maxChecks) {
+          console.log('⏰ Tempo limite de verificação atingido')
+          return
         }
       } catch (error) {
         console.error('Erro ao verificar status:', error)
+        checkCount++
       }
     }
 
-    // Verificar a cada 5 segundos
+    // Verificar imediatamente e depois a cada 5 segundos
+    checkPaymentStatus()
     const interval = setInterval(checkPaymentStatus, 5000)
+    
     return () => clearInterval(interval)
   }, [preferenceId, paymentStatus, onSuccess])
 
@@ -350,8 +385,12 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
             <span className="font-medium">Aguardando pagamento...</span>
           </div>
           <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
-            Verificando status automaticamente
+            Verificando status automaticamente a cada 5 segundos
           </p>
+          <div className="mt-3 text-xs text-blue-600 dark:text-blue-400">
+            <p>💡 <strong>Dica:</strong> Após fazer o pagamento, aguarde alguns segundos.</p>
+            <p>O sistema detectará automaticamente quando o pagamento for confirmado.</p>
+          </div>
         </div>
       </div>
 
