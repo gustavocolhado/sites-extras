@@ -28,6 +28,7 @@ function PremiumSuccessContent() {
   const [isProcessing, setIsProcessing] = useState(false)
 
   const sessionId = searchParams.get('session_id')
+  const paymentId = searchParams.get('payment_id')
 
   const processPaymentManually = async () => {
     if (!sessionId) return;
@@ -60,28 +61,57 @@ function PremiumSuccessContent() {
 
   useEffect(() => {
     const checkPaymentStatus = async () => {
-      if (!sessionId) {
-        setPaymentStatus('failed')
-        setError('ID da sessão não encontrado')
+      // Se temos payment_id (PIX), verificar status do PIX
+      if (paymentId) {
+        try {
+          const response = await fetch('/api/premium/check-payment-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ preferenceId: paymentId }),
+          })
+
+          const data = await response.json()
+
+          if (response.ok && (data.status === 'approved' || data.status === 'paid')) {
+            setPaymentStatus('confirmed')
+          } else {
+            setPaymentStatus('pending')
+            setError('Pagamento PIX ainda não foi confirmado')
+          }
+        } catch (err) {
+          console.error('Erro ao verificar status do PIX:', err)
+          setPaymentStatus('failed')
+          setError('Erro ao verificar status do pagamento PIX')
+        }
         return
       }
 
-      try {
-        // Verificar status do pagamento na API do Stripe
-        const response = await fetch(`/api/stripe/webhook/status?session_id=${sessionId}`)
-        const data = await response.json()
+      // Se temos session_id (Stripe), verificar status do Stripe
+      if (sessionId) {
+        try {
+          // Verificar status do pagamento na API do Stripe
+          const response = await fetch(`/api/stripe/webhook/status?session_id=${sessionId}`)
+          const data = await response.json()
 
-        if (response.ok && data.confirmed) {
-          setPaymentStatus('confirmed')
-        } else {
-          setPaymentStatus('pending')
-          setError(data.message || 'Pagamento ainda não foi confirmado')
+          if (response.ok && data.confirmed) {
+            setPaymentStatus('confirmed')
+          } else {
+            setPaymentStatus('pending')
+            setError(data.message || 'Pagamento ainda não foi confirmado')
+          }
+        } catch (err) {
+          console.error('Erro ao verificar status do pagamento:', err)
+          setPaymentStatus('failed')
+          setError('Erro ao verificar status do pagamento')
         }
-      } catch (err) {
-        console.error('Erro ao verificar status do pagamento:', err)
-        setPaymentStatus('failed')
-        setError('Erro ao verificar status do pagamento')
+        return
       }
+
+      // Se não temos nenhum ID
+      setPaymentStatus('failed')
+      setError('ID da sessão não encontrado')
     }
 
     checkPaymentStatus()
@@ -94,7 +124,7 @@ function PremiumSuccessContent() {
 
       return () => clearInterval(retryInterval)
     }
-  }, [sessionId, paymentStatus])
+  }, [sessionId, paymentId, paymentStatus])
 
   useEffect(() => {
     // Só inicia o countdown se o pagamento foi confirmado
@@ -154,12 +184,24 @@ function PremiumSuccessContent() {
               {error || 'Seu pagamento ainda não foi confirmado. Isso pode levar alguns minutos.'}
             </p>
 
-            {sessionId && (
+            {(sessionId || paymentId) && (
               <div className="bg-theme-card rounded-xl p-4 mb-8 shadow-lg border border-theme-border-primary">
-                <p className="text-sm text-theme-secondary mb-2">ID da Sessão:</p>
-                <p className="font-mono text-sm bg-theme-hover p-2 rounded-lg break-all text-theme-primary">
-                  {sessionId}
-                </p>
+                {sessionId && (
+                  <>
+                    <p className="text-sm text-theme-secondary mb-2">ID da Sessão Stripe:</p>
+                    <p className="font-mono text-sm bg-theme-hover p-2 rounded-lg break-all text-theme-primary mb-3">
+                      {sessionId}
+                    </p>
+                  </>
+                )}
+                {paymentId && (
+                  <>
+                    <p className="text-sm text-theme-secondary mb-2">ID do Pagamento PIX:</p>
+                    <p className="font-mono text-sm bg-theme-hover p-2 rounded-lg break-all text-theme-primary">
+                      {paymentId}
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
@@ -235,13 +277,25 @@ function PremiumSuccessContent() {
             Seu pagamento foi processado com sucesso. Agora você tem acesso a todo o conteúdo exclusivo.
           </p>
 
-          {/* Session ID Display */}
-          {sessionId && (
+          {/* Payment ID Display */}
+          {(sessionId || paymentId) && (
             <div className="bg-theme-card rounded-xl p-4 mb-8 shadow-lg border border-theme-border-primary">
-              <p className="text-sm text-theme-secondary mb-2">ID da Sessão:</p>
-              <p className="font-mono text-sm bg-theme-hover p-2 rounded-lg break-all text-theme-primary">
-                {sessionId}
-              </p>
+              {sessionId && (
+                <>
+                  <p className="text-sm text-theme-secondary mb-2">ID da Sessão Stripe:</p>
+                  <p className="font-mono text-sm bg-theme-hover p-2 rounded-lg break-all text-theme-primary mb-3">
+                    {sessionId}
+                  </p>
+                </>
+              )}
+              {paymentId && (
+                <>
+                  <p className="text-sm text-theme-secondary mb-2">ID do Pagamento PIX:</p>
+                  <p className="font-mono text-sm bg-theme-hover p-2 rounded-lg break-all text-theme-primary">
+                    {paymentId}
+                  </p>
+                </>
+              )}
             </div>
           )}
 

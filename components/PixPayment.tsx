@@ -108,7 +108,10 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
           if (paymentData.status === 'approved' || paymentData.status === 'paid') {
             console.log('✅ Pagamento aprovado! Redirecionando...')
             setPaymentStatus('approved')
-            setTimeout(() => onSuccess(), 2000)
+            setTimeout(() => {
+              // Redirecionar para a página de sucesso com o payment_id
+              window.location.href = `/premium/success?payment_id=${pixData?.payment_id || preferenceId}`
+            }, 2000)
             return
           } else if (paymentData.status === 'rejected' || paymentData.status === 'cancelled') {
             console.log('❌ Pagamento rejeitado')
@@ -139,7 +142,10 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
             if (minutesDiff < 10) {
               console.log('✅ Usuário tem premium ativo e pagamento recente! Redirecionando...')
               setPaymentStatus('approved')
-              setTimeout(() => onSuccess(), 2000)
+              setTimeout(() => {
+                // Redirecionar para a página de sucesso com o payment_id
+                window.location.href = `/premium/success?payment_id=${pixData?.payment_id || preferenceId}`
+              }, 2000)
               return
             }
           }
