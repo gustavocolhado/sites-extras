@@ -7,8 +7,8 @@ async function debugPaymentSession() {
     console.log('🔍 Debugando PaymentSession específica...')
     
     // ID do PaymentSession dos logs mais recentes
-    const paymentSessionId = '68afbcb0aac207a0b0f3d2d3'
-    const pixId = '9FBD274C-1F6F-4AD6-94A9-08E70E47F303'
+    const paymentSessionId = '68afc16e52de58fce2aeb6c2'
+    const pixId = '9FBD2E88-6692-4CCC-9204-E74D751C1017'
     
     console.log('\n📋 Buscando PaymentSession por ID:', paymentSessionId)
     const sessionById = await prisma.paymentSession.findUnique({

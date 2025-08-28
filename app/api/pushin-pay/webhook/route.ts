@@ -59,7 +59,9 @@ function getPlanDurationInDays(plan: string): number {
 // Função para ativar o acesso premium via webhook
 async function activatePremiumAccessViaWebhook(pixId: string, statusData: WebhookPayload) {
   try {
-    // Buscar o PaymentSession no banco pelo PIX ID normalizado
+    // Buscar o PaymentSession mais recente no banco pelo PIX ID normalizado
+    console.log('🔍 Buscando PaymentSession mais recente com PIX ID:', pixId)
+    
     const paymentSession = await prisma.paymentSession.findFirst({
       where: {
         OR: [
@@ -67,6 +69,7 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
           { preferenceId: pixId } // Agora o preferenceId já está em maiúsculo
         ]
       },
+      orderBy: { updatedAt: 'desc' }, // Buscar a mais recente
       include: { user: true }
     })
 
@@ -92,6 +95,29 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
       
       return false
     }
+
+    // Debug: mostrar todas as PaymentSessions que correspondem ao PIX ID
+    const allMatchingSessions = await prisma.paymentSession.findMany({
+      where: {
+        OR: [
+          { paymentId: parseInt(pixId) },
+          { preferenceId: pixId }
+        ]
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: { user: true }
+    })
+
+    console.log(`🔍 Encontradas ${allMatchingSessions.length} PaymentSessions com PIX ID ${pixId}:`)
+    allMatchingSessions.forEach((session, index) => {
+      console.log(`${index + 1}. ID: ${session.id}`)
+      console.log(`   PaymentID: ${session.paymentId}`)
+      console.log(`   PreferenceID: ${session.preferenceId}`)
+      console.log(`   Status: ${session.status}`)
+      console.log(`   Usuário: ${session.user?.email}`)
+      console.log(`   Atualizado: ${session.updatedAt}`)
+      console.log('')
+    })
     
     console.log('✅ PaymentSession encontrada no webhook:', {
       id: paymentSession.id,

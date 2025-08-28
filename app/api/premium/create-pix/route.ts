@@ -251,13 +251,20 @@ export async function POST(request: NextRequest) {
       }
 
       // Atualizar PaymentSession com o ID do PIX
-      await prisma.paymentSession.update({
+      const updatedPaymentSession = await prisma.paymentSession.update({
         where: { id: paymentSession.id },
         data: {
           paymentId: parseInt(pixResponse.id),
           preferenceId: pixResponse.id.toUpperCase(), // Salvar em maiúsculo para compatibilidade com webhook
           status: 'pending'
         }
+      })
+
+      console.log('✅ PaymentSession atualizada com PIX ID:', {
+        id: updatedPaymentSession.id,
+        paymentId: updatedPaymentSession.paymentId,
+        preferenceId: updatedPaymentSession.preferenceId,
+        status: updatedPaymentSession.status
       })
 
       console.log('✅ PIX Pushin Pay criado:', {
