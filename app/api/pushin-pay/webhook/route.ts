@@ -59,12 +59,12 @@ function getPlanDurationInDays(plan: string): number {
 // Função para ativar o acesso premium via webhook
 async function activatePremiumAccessViaWebhook(pixId: string, statusData: WebhookPayload) {
   try {
-    // Buscar o PaymentSession no banco
+    // Buscar o PaymentSession no banco pelo PIX ID normalizado
     const paymentSession = await prisma.paymentSession.findFirst({
       where: {
         OR: [
           { paymentId: parseInt(pixId) },
-          { preferenceId: pixId }
+          { preferenceId: pixId } // Agora o preferenceId já está em maiúsculo
         ]
       },
       include: { user: true }
@@ -72,8 +72,35 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
 
     if (!paymentSession) {
       console.error('PaymentSession não encontrada no webhook:', pixId)
+      
+      // Debug: buscar todas as PaymentSessions recentes para entender o problema
+      const recentSessions = await prisma.paymentSession.findMany({
+        take: 5,
+        orderBy: { updatedAt: 'desc' },
+        include: { user: true }
+      })
+      
+      console.log('🔍 PaymentSessions recentes para debug:')
+      recentSessions.forEach(session => {
+        console.log(`- ID: ${session.id}`)
+        console.log(`  PaymentID: ${session.paymentId}`)
+        console.log(`  PreferenceID: ${session.preferenceId}`)
+        console.log(`  Status: ${session.status}`)
+        console.log(`  Usuário: ${session.user?.email}`)
+        console.log('')
+      })
+      
       return false
     }
+    
+    console.log('✅ PaymentSession encontrada no webhook:', {
+      id: paymentSession.id,
+      paymentId: paymentSession.paymentId,
+      preferenceId: paymentSession.preferenceId,
+      status: paymentSession.status,
+      userId: paymentSession.userId,
+      userEmail: paymentSession.userEmail
+    })
 
     // Verificar se já foi processado
     if (paymentSession.status === 'paid') {
@@ -184,8 +211,12 @@ export async function POST(request: NextRequest) {
 
     const { id, status, value, end_to_end_id, payer_name, payer_national_registration } = body
 
+    // Normalizar o PIX ID para maiúsculo
+    const normalizedPixId = id.toUpperCase()
+
     console.log('📊 Webhook Pushin Pay processado:', {
-      pixId: id,
+      pixId: normalizedPixId,
+      originalPixId: id,
       status,
       value,
       endToEndId: end_to_end_id,
@@ -195,11 +226,11 @@ export async function POST(request: NextRequest) {
 
     // Verificar se o pagamento foi confirmado
     if (status === 'paid') {
-      console.log('✅ Pagamento confirmado via webhook Pushin Pay:', id)
+      console.log('✅ Pagamento confirmado via webhook Pushin Pay:', normalizedPixId)
       
       // Ativar acesso premium
-      const activated = await activatePremiumAccessViaWebhook(id, {
-        id,
+      const activated = await activatePremiumAccessViaWebhook(normalizedPixId, {
+        id: normalizedPixId,
         status,
         value,
         end_to_end_id,
@@ -215,7 +246,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      console.log('🎉 Acesso premium ativado com sucesso via webhook Pushin Pay:', id)
+      console.log('🎉 Acesso premium ativado com sucesso via webhook Pushin Pay:', normalizedPixId)
     } else {
       console.log('ℹ️ Status do pagamento não é "paid":', status)
     }

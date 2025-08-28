@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
         where: { id: paymentSession.id },
         data: {
           paymentId: parseInt(pixResponse.id),
-          preferenceId: pixResponse.id,
+          preferenceId: pixResponse.id.toUpperCase(), // Salvar em maiúsculo para compatibilidade com webhook
           status: 'pending'
         }
       })

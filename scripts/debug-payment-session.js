@@ -6,9 +6,9 @@ async function debugPaymentSession() {
   try {
     console.log('🔍 Debugando PaymentSession específica...')
     
-    // ID do PaymentSession dos logs
-    const paymentSessionId = '68afba98e431bdc0fd471081'
-    const pixId = '9FBD241A-80E6-4625-A9EB-A7B4E12B7D13'
+    // ID do PaymentSession dos logs mais recentes
+    const paymentSessionId = '68afbcb0aac207a0b0f3d2d3'
+    const pixId = '9FBD274C-1F6F-4AD6-94A9-08E70E47F303'
     
     console.log('\n📋 Buscando PaymentSession por ID:', paymentSessionId)
     const sessionById = await prisma.paymentSession.findUnique({
@@ -80,7 +80,7 @@ async function debugPaymentSession() {
     console.log('\n🔍 Verificando pagamentos recentes:')
     const recentPayments = await prisma.payment.findMany({
       take: 5,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { transactionDate: 'desc' }
     })
     
     recentPayments.forEach(payment => {
@@ -90,7 +90,7 @@ async function debugPaymentSession() {
       console.log(`  Plano: ${payment.plan}`)
       console.log(`  Valor: R$ ${payment.amount}`)
       console.log(`  Usuário: ${payment.userEmail}`)
-      console.log(`  Criado: ${payment.createdAt}`)
+      console.log(`  Data: ${payment.transactionDate}`)
       console.log('')
     })
     
