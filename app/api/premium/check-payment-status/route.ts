@@ -30,11 +30,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar PaymentSession no banco de dados pelo preferenceId
+    // Também buscar pelo ID do PIX que pode estar no preferenceId
     const paymentSession = await prisma.paymentSession.findFirst({
       where: {
         OR: [
           { paymentId: parseInt(preferenceId) },
-          { preferenceId: preferenceId }
+          { preferenceId: preferenceId },
+          // Buscar também pelo ID do PIX que pode estar no preferenceId
+          { preferenceId: { contains: preferenceId } }
         ]
       },
     })

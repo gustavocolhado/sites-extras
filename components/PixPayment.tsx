@@ -27,6 +27,8 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
   useEffect(() => {
     const fetchPixData = async () => {
       try {
+        console.log('🎯 PixPayment - Iniciando busca de dados PIX para preferenceId:', preferenceId)
+        
         const response = await fetch('/api/premium/create-pix', {
           method: 'POST',
           headers: {
@@ -68,6 +70,7 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
         const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000))
         setTimeLeft(remaining)
       } catch (err) {
+        console.error('❌ Erro ao buscar dados PIX:', err)
         setError(err instanceof Error ? err.message : 'Erro desconhecido')
       } finally {
         setLoading(false)
@@ -87,6 +90,7 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
     const checkPaymentStatus = async () => {
       try {
         console.log(`🔍 Verificando status do pagamento (tentativa ${checkCount + 1}/${maxChecks})`)
+        console.log(`🔍 PreferenceId sendo verificado:`, preferenceId)
         
         // Primeiro, verificar o status do pagamento específico
         const paymentResponse = await fetch('/api/premium/check-payment-status', {
@@ -110,7 +114,11 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
             console.log('❌ Pagamento rejeitado')
             setPaymentStatus('rejected')
             return
+          } else {
+            console.log('⏳ Pagamento ainda pendente:', paymentData.status)
           }
+        } else {
+          console.log('❌ Erro na resposta da API de verificação:', paymentResponse.status)
         }
 
         // Como fallback, verificar o status premium do usuário
