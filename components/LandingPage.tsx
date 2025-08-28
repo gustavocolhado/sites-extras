@@ -26,6 +26,8 @@ interface PixResponse {
   status: string;
   value: number;
   qr_code_base64: string | null;
+  payment_id?: string;
+  provider?: string;
 }
 
 export default function LandingPage() {
@@ -472,6 +474,14 @@ export default function LandingPage() {
   const createPixPayment = async () => {
     if (!email || !selectedPlan) return;
 
+          console.log('🎯 LandingPage - Iniciando criação de PIX:', {
+        email,
+        planId: selectedPlan.id,
+        price: selectedPlan.price,
+        priceType: typeof selectedPlan.price,
+        priceInReais: selectedPlan.price / 100
+      });
+
     setIsLoading(true);
     setError(null);
     
@@ -479,6 +489,8 @@ export default function LandingPage() {
       // Obter dados da campanha do localStorage
       const storedCampaignData = localStorage.getItem('campaignData');
       const campaignInfo = storedCampaignData ? JSON.parse(storedCampaignData) : referralData;
+      
+      console.log('📊 Dados da campanha:', campaignInfo);
       
       // Criar PIX usando a API específica da LandingPage
       const response = await fetch('/api/landing-page/create-pix', {
@@ -494,16 +506,41 @@ export default function LandingPage() {
         }),
       });
 
+      console.log('📡 Resposta da API:', {
+        status: response.status,
+        ok: response.ok
+      });
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ Erro na API:', errorData);
         throw new Error(errorData.error || 'Erro ao criar PIX');
       }
 
       const pixResponse: PixResponse = await response.json();
+      console.log('📊 Dados PIX recebidos:', {
+        id: pixResponse.id,
+        hasQRCode: !!pixResponse.qr_code,
+        hasQRCodeBase64: !!pixResponse.qr_code_base64,
+        qrCodeLength: pixResponse.qr_code?.length,
+        qrCodeBase64Length: pixResponse.qr_code_base64?.length,
+        provider: pixResponse.provider,
+        status: pixResponse.status
+      });
+      
       setPixData(pixResponse);
+      
+      // Se não tem QR code base64, tentar gerar localmente
+      if (!pixResponse.qr_code_base64 && pixResponse.qr_code) {
+        console.log('⚠️ QR code base64 não recebido, gerando localmente...')
+        generateQRCode(pixResponse.qr_code);
+      }
+      
       setShowPixPayment(true);
+      
+      console.log('✅ PIX criado com sucesso, mostrando tela de pagamento');
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('❌ Erro ao criar PIX:', error);
       setError(error instanceof Error ? error.message : 'Erro ao processar pagamento. Tente novamente.');
     } finally {
       setIsLoading(false);
@@ -1388,37 +1425,53 @@ export default function LandingPage() {
                   {/* QR Code */}
                   <div className="flex justify-center mb-6">
                     <div className="bg-white p-4 rounded-lg">
-                      {pixData?.qr_code_base64 ? (
-                        <img 
-                          src={`data:image/png;base64,${pixData.qr_code_base64}`}
-                          alt="QR Code PIX" 
-                          className="w-48 h-48"
-                          onError={(e) => {
-                            console.error('❌ Erro ao carregar QR code base64:', e)
-                            // Se falhar, tentar gerar localmente
-                            if (pixData.qr_code) {
-                              generateQRCode(pixData.qr_code)
-                            }
-                          }}
-                          onLoad={() => console.log('✅ QR code base64 carregado com sucesso')}
-                        />
-                      ) : generatedQRCode ? (
-                        <img 
-                          src={generatedQRCode} 
-                          alt="QR Code PIX Gerado" 
-                          className="w-48 h-48"
-                          onError={(e) => console.error('❌ Erro ao carregar QR code gerado:', e)}
-                          onLoad={() => console.log('✅ QR code gerado carregado com sucesso')}
-                        />
-                      ) : (
-                        <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded">
-                          <div className="text-center">
-                            <p className="text-gray-600 text-sm mb-2">Gerando QR Code...</p>
-                            <FaSpinner className="text-blue-500 animate-spin mx-auto mb-2" />
-                            <p className="text-gray-500 text-xs">Use o código copia e cola abaixo</p>
-                          </div>
-                        </div>
-                      )}
+                      {(() => {
+                        console.log('🔍 Renderizando QR Code:', {
+                          hasPixData: !!pixData,
+                          hasQRCodeBase64: !!pixData?.qr_code_base64,
+                          hasGeneratedQRCode: !!generatedQRCode,
+                          pixDataKeys: pixData ? Object.keys(pixData) : [],
+                          qrCodeBase64Length: pixData?.qr_code_base64?.length
+                        });
+                        
+                        if (pixData?.qr_code_base64) {
+                          return (
+                            <img 
+                              src={`data:image/png;base64,${pixData.qr_code_base64}`}
+                              alt="QR Code PIX" 
+                              className="w-48 h-48"
+                              onError={(e) => {
+                                console.error('❌ Erro ao carregar QR code base64:', e)
+                                // Se falhar, tentar gerar localmente
+                                if (pixData.qr_code) {
+                                  generateQRCode(pixData.qr_code)
+                                }
+                              }}
+                              onLoad={() => console.log('✅ QR code base64 carregado com sucesso')}
+                            />
+                          );
+                        } else if (generatedQRCode) {
+                          return (
+                            <img 
+                              src={generatedQRCode} 
+                              alt="QR Code PIX Gerado" 
+                              className="w-48 h-48"
+                              onError={(e) => console.error('❌ Erro ao carregar QR code gerado:', e)}
+                              onLoad={() => console.log('✅ QR code gerado carregado com sucesso')}
+                            />
+                          );
+                        } else {
+                          return (
+                            <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded">
+                              <div className="text-center">
+                                <p className="text-gray-600 text-sm mb-2">Gerando QR Code...</p>
+                                <FaSpinner className="text-blue-500 animate-spin mx-auto mb-2" />
+                                <p className="text-gray-500 text-xs">Use o código copia e cola abaixo</p>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
                   </div>
 
@@ -1464,17 +1517,7 @@ export default function LandingPage() {
 
                   <hr className="border-neutral-700 mb-6" />
 
-                  {/* Footer */}
-                  <div className="text-center text-white text-xs space-y-1">
-                    <p>Pix processado por: PUSHIN PAY</p>
-                    <p>Constará no seu extrato da sua conta bancária o nome PUSHIN PAY.</p>
-                  </div>
-
-                  <div className="text-neutral-500 text-xs mt-4 text-center">
-                    Esta compra será processada pela PUSHIN PAY © 2025 - Todos os direitos reservados. 
-                    Sua compra de acesso será processada com segurança e discrição por PUSHIN PAY. 
-                    Se você encontrar algum problema durante o processo de compra, favor contatar Apoio ao Cliente.
-                  </div>
+                  {/* Footer - Removido conforme solicitado */}
                 </div>
               ) : showPaymentMethod ? (
                 // Tela de seleção de método de pagamento
@@ -1549,7 +1592,6 @@ export default function LandingPage() {
                   </div>
 
                   <div className="mt-6 text-center text-white text-xs space-y-1">
-                    <p>PIX processado por: PUSHIN PAY</p>
                     <p>Cartão processado por: STRIPE</p>
                   </div>
                 </div>

@@ -21,7 +21,7 @@ import PixPayment from '@/components/PixPayment'
 import Footer from '@/components/Footer'
 import { useCountry } from '@/hooks/useCountry'
 import CurrencySelector from '@/components/CurrencySelector'
-import PushinPayDisclaimer from '@/components/PushinPayDisclaimer'
+
 
 interface Plan {
   id: string
@@ -476,12 +476,7 @@ export default function PremiumPage() {
                     </div>
                   )}
 
-                  {/* Aviso do Pushin Pay */}
-                  {activePaymentProvider === 'pushinpay' && paymentMethod === 'pix' && (
-                    <div className="mb-6">
-                      <PushinPayDisclaimer />
-                    </div>
-                  )}
+                  {/* Aviso do Pushin Pay - Removido conforme solicitado */}
 
                   {paymentMethod && (
                     <button
