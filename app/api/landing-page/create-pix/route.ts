@@ -279,7 +279,7 @@ export async function POST(request: NextRequest) {
       
       // Verificar se o QR code base64 já tem o prefixo data:image/png;base64,
       qrCodeBase64 = response.qr_code_base64
-      if (qrCodeBase64.startsWith('data:image/png;base64,')) {
+      if (qrCodeBase64 && qrCodeBase64.startsWith('data:image/png;base64,')) {
         // Remover o prefixo para manter consistência
         qrCodeBase64 = qrCodeBase64.replace('data:image/png;base64,', '')
         console.log('🔧 Prefixo removido do QR code base64')
@@ -287,8 +287,8 @@ export async function POST(request: NextRequest) {
       
       console.log('📊 QR Code Pushin Pay processado:', {
         qrCodeLength: response.qr_code.length,
-        qrCodeBase64Length: qrCodeBase64.length,
-        qrCodeBase64Preview: qrCodeBase64.substring(0, 50) + '...'
+        qrCodeBase64Length: qrCodeBase64?.length || 0,
+        qrCodeBase64Preview: qrCodeBase64 ? qrCodeBase64.substring(0, 50) + '...' : 'null'
       })
     } else {
       return NextResponse.json(
