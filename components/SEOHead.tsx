@@ -25,27 +25,32 @@ export default function SEOHead({
   const { domainConfig, isLoading } = useDomainContext()
 
   // Use domain config if available, otherwise use props or defaults
-  const finalTitle = title || (domainConfig?.title || 'CORNOS BRASIL - Videos Porno de Sexo Amador | Corno Videos')
-  const finalDescription = description || (domainConfig?.description || 'Videos porno de sexo amador brasileiro. Assista videos de corno, porno amador, videos porno grátis. CORNOS BRASIL - O melhor site de videos porno amador do Brasil.')
+  const finalTitle = title || (domainConfig?.title || 'Corno Videos - Videos de Corno | Porno Amador Brasileiro')
+  const finalDescription = description || (domainConfig?.description || 'Corno videos e videos de corno brasileiros. Porno amador real, videos de corno caseiros, sexo amador brasileiro. O melhor site de corno videos e porno amador do Brasil.')
   const finalKeywords = keywords || (domainConfig?.keywords || [
-    'videos porno',
-    'porno amador', 
+    'corno videos',
     'videos de corno',
-    'cornos brasil',
-    'sexo amador',
-    'videos porno grátis',
-    'porno brasileiro',
-    'videos de sexo',
-    'amador porno',
-    'videos porno amador',
+    'porno amador',
+    'videos porno',
     'cornos videos',
-    'porno corno',
-    'videos de sexo amador',
-    'porno grátis',
-    'videos porno brasileiro'
+    'sexo amador',
+    'videos de corno brasileiros',
+    'porno amador brasileiro',
+    'corno videos brasileiros',
+    'videos de corno caseiros',
+    'porno amador caseiro',
+    'videos de corno real',
+    'sexo amador real',
+    'corno videos grátis',
+    'videos de corno grátis',
+    'porno amador grátis',
+    'cornos brasil',
+    'videos porno amador',
+    'porno brasileiro',
+    'videos de sexo amador'
   ])
   const finalCanonical = canonical || (domainConfig?.canonical || 'https://cornosbrasil.com')
-  const finalOgImage = ogImage || (domainConfig?.ogImage || '/imgs/logo.png')
+  const finalOgImage = ogImage || (domainConfig?.ogImage || '/imgs/og-cornosbrasil.jpg')
   const finalSiteName = domainConfig?.siteName || 'CORNOS BRASIL'
 
   const fullTitle = finalTitle.includes(finalSiteName) ? finalTitle : `${finalTitle} | ${finalSiteName}`

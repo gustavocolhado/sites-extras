@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Video, Menu, User, Camera, LogOut, Crown, Settings, Heart, Star, Clock, Search } from 'lucide-react'
+import { ChevronDown, Video, Menu, User, Camera, LogOut, Crown, Settings, Heart, Star, Clock, Search, Send, MessageCircle } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import Logo from './Logo'
 import MobileSidebar from './MobileSidebar'
@@ -74,16 +74,22 @@ export default function Header() {
               placeholder="Pesquisar vídeos amadores.."
               className="flex-1 bg-transparent px-4 py-2 focus:outline-none"
             />
-            <div className="flex items-center border-l border-theme-input">
-              <button className="flex items-center space-x-2 px-4 py-2 text-theme-secondary hover:text-theme-primary transition-colors">
-                <Camera size={16} />
-                <span className="text-sm">Videos</span>
-                <ChevronDown size={12} />
-              </button>
-            </div>
             <button className="theme-btn-primary px-6 py-2">
               BUSCAR
             </button>
+          </div>
+
+          {/* Telegram Button */}
+          <div className="mb-4">
+            <a
+              href="https://t.me/+olxxKcXpwmU1YTIx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center space-x-2 w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg transition-colors font-medium"
+            >
+              <Send size={18} />
+              <span>Acessar Canal no Telegram</span>
+            </a>
           </div>
         </div>
 
@@ -285,6 +291,15 @@ export default function Header() {
             <a href="/tags" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Tags</a>
             <a href="/contact" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Contato</a>
             <a href="/support" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Suporte</a>
+            <a 
+              href="https://t.me/+olxxKcXpwmU1YTIx" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-blue-500 hover:text-blue-400 transition-colors text-sm font-medium whitespace-nowrap"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Telegram
+            </a>
           </div>
         </div>
 

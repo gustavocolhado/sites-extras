@@ -1039,9 +1039,6 @@ export default function LandingPage() {
          </div>
        </div>
        </div>
-
-
-
        {/* Planos de Assinatura - Responsivo */}
        <div id="plans-section" className="px-4 py-6 md:px-8 md:py-12">
          <div className="max-w-4xl mx-auto">
@@ -1158,6 +1155,30 @@ export default function LandingPage() {
              >
                Acesse nosso conteúdo grátis →
              </Link>
+           </div>
+         </div>
+       </div>
+
+       {/* Botão do Telegram */}
+       <div className="px-4 py-6 md:px-8 md:py-8">
+         <div className="max-w-2xl mx-auto">
+           <div className="bg-gradient-to-r from-blue-900/20 to-blue-800/20 border border-blue-500/30 rounded-lg p-6 md:p-8 text-center">
+             <div className="flex items-center justify-center gap-3 mb-4">
+               <FaComments className="text-blue-400 text-3xl" />
+               <h3 className="text-2xl md:text-3xl font-bold text-white">Junte-se ao nosso Canal no Telegram</h3>
+             </div>
+             <p className="text-neutral-300 mb-6 text-sm md:text-base">
+               Receba notificações de novos vídeos, conteúdo exclusivo e fique por dentro de tudo que acontece!
+             </p>
+             <a
+               href="https://t.me/+olxxKcXpwmU1YTIx"
+               target="_blank"
+               rel="noopener noreferrer"
+               className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-bold transition-colors text-lg"
+             >
+               <FaComments className="text-xl" />
+               Acessar Canal no Telegram
+             </a>
            </div>
          </div>
        </div>

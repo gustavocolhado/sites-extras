@@ -41,8 +41,8 @@ export default function VideoSEOHead({
   const canonicalDomain = isLoading || !domainConfig ? 'https://cornosbrasil.com' : domainConfig.canonical
 
   const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`
-  const fullDescription = description || `Assista ${title} - Videos porno amador brasileiro no ${siteName}. ${creatorName} apresenta este video de ${category.join(', ')}.`
-  const keywords = [...tags, ...category, 'videos porno', 'porno amador', 'videos de corno', siteName.toLowerCase(), 'sexo amador']
+  const fullDescription = description || `Assista ${title} - Corno videos e videos de corno brasileiros. Porno amador real no ${siteName}. ${creatorName} apresenta este video de ${category.join(', ')}.`
+  const keywords = [...tags, ...category, 'corno videos', 'videos de corno', 'porno amador', 'cornos videos', 'sexo amador', siteName.toLowerCase()]
   const canonicalUrl = canonical || `${canonicalDomain}/video/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
   
   // Converter duração para formato ISO 8601
