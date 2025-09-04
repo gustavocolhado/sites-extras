@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const faviconPath = join(process.cwd(), 'public', 'favicon.png')
     const faviconBuffer = await readFile(faviconPath)
     
-    return new NextResponse(faviconBuffer, {
+    return new NextResponse(faviconBuffer as any, {
       headers: {
         'Content-Type': 'image/png', // Manter como PNG mesmo na rota .ico
         'Cache-Control': 'public, max-age=31536000, immutable',
