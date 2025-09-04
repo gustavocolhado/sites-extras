@@ -30,7 +30,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'traição real'
     ],
     logo: '/imgs/logo-filmando.png',
-    favicon: '/favicon-filmando.png',
+    favicon: '/favicon.png',
     primaryColor: '#3498db',
     theme: 'dark',
     canonical: 'https://cornofilmando.com',
@@ -54,7 +54,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'cornos brasileiros'
     ],
     logo: '/imgs/logo-manso.png',
-    favicon: '/favicon-manso.png',
+    favicon: '/favicon.png',
     primaryColor: '#9b59b6',
     theme: 'dark',
     canonical: 'https://cornomanso.com.br',
@@ -78,7 +78,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'cornos videos'
     ],
     logo: '/imgs/logo-play.png',
-    favicon: '/favicon-play.png',
+    favicon: '/favicon.png',
     primaryColor: '#f39c12',
     theme: 'dark',
     canonical: 'https://cornoplay.com',
@@ -136,7 +136,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'tv porno amador'
     ],
     logo: '/imgs/logo-tv.png',
-    favicon: '/favicon-tv.png',
+    favicon: '/favicon.png',
     primaryColor: '#e67e22',
     theme: 'dark',
     canonical: 'https://cornostv.com',
@@ -160,7 +160,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos exclusivos'
     ],
     logo: '/imgs/logo-vip.png',
-    favicon: '/favicon-vip.png',
+    favicon: '/favicon.png',
     primaryColor: '#f1c40f',
     theme: 'dark',
     canonical: 'https://cornosvip.com',
@@ -184,7 +184,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos porno amador'
     ],
     logo: '/imgs/logo-tube.png',
-    favicon: '/favicon-tube.png',
+    favicon: '/favicon.png',
     primaryColor: '#e74c3c',
     theme: 'dark',
     canonical: 'https://cornotube.com',
@@ -208,7 +208,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos porno'
     ],
     logo: '/imgs/logo-videos.png',
-    favicon: '/favicon-videos.png',
+    favicon: '/favicon.png',
     primaryColor: '#2ecc71',
     theme: 'dark',
     canonical: 'https://cornovideos.com',
@@ -232,7 +232,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos porno'
     ],
     logo: '/imgs/logo-esposa.png',
-    favicon: '/favicon-esposa.png',
+    favicon: '/favicon.png',
     primaryColor: '#e91e63',
     theme: 'dark',
     canonical: 'https://esposadecorno.com',
@@ -256,7 +256,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos porno'
     ],
     logo: '/imgs/logo-gozando.png',
-    favicon: '/favicon-gozando.png',
+    favicon: '/favicon.png',
     primaryColor: '#ff5722',
     theme: 'dark',
     canonical: 'https://esposagozando.com',
@@ -280,7 +280,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos porno'
     ],
     logo: '/imgs/logo-safada.png',
-    favicon: '/favicon-safada.png',
+    favicon: '/favicon.png',
     primaryColor: '#ff9800',
     theme: 'dark',
     canonical: 'https://esposasafada.com',
@@ -304,7 +304,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos porno'
     ],
     logo: '/imgs/logo-marido.png',
-    favicon: '/favicon-marido.png',
+    favicon: '/favicon.png',
     primaryColor: '#795548',
     theme: 'dark',
     canonical: 'https://maridocorno.com',
@@ -328,7 +328,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos porno'
     ],
     logo: '/imgs/logo-mulher.png',
-    favicon: '/favicon-mulher.png',
+    favicon: '/favicon.png',
     primaryColor: '#9c27b0',
     theme: 'dark',
     canonical: 'https://mulherdecorno.com',
@@ -352,7 +352,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'videos porno'
     ],
     logo: '/imgs/logo-mulher.png',
-    favicon: '/favicon-mulher.png',
+    favicon: '/favicon.png',
     primaryColor: '#9c27b0',
     theme: 'dark',
     canonical: 'https://mulherdocorno.com',
@@ -376,7 +376,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
       'porno brasileiro'
     ],
     logo: '/imgs/logo-videos.png',
-    favicon: '/favicon-videos.png',
+    favicon: '/favicon.png',
     primaryColor: '#2196f3',
     theme: 'dark',
     canonical: 'https://videosdecorno.com',
