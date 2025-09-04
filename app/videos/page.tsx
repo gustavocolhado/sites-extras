@@ -78,11 +78,11 @@ export default function VideosPage() {
     }
     
     const filterLabels = {
-      recent: 'Vídeos Mais Recentes',
-      popular: 'Vídeos Mais Vistos',
-      liked: 'Vídeos Mais Curtidos',
-      long: 'Vídeos Longos',
-      random: 'Vídeos Aleatórios'
+      recent: 'Vídeos Mais Recentes de Todas as Categorias',
+      popular: 'Vídeos Mais Vistos de Todas as Categorias',
+      liked: 'Vídeos Mais Curtidos de Todas as Categorias',
+      long: 'Vídeos Longos de Todas as Categorias',
+      random: 'Vídeos Aleatórios de Todas as Categorias'
     }
     
     return `${filterLabels[selectedFilter]} - CORNOS BRASIL`
@@ -94,11 +94,11 @@ export default function VideosPage() {
     }
     
     const filterDescriptions = {
-      recent: 'Assista os vídeos mais recentes no CORNOS BRASIL. Videos porno amador, videos de corno, porno brasileiro. Os melhores videos porno grátis atualizados diariamente.',
-      popular: 'Os vídeos mais vistos no CORNOS BRASIL. Videos porno amador populares, videos de corno mais assistidos, porno brasileiro em alta. Videos porno grátis com mais visualizações.',
-      liked: 'Os vídeos mais curtidos no CORNOS BRASIL. Videos porno amador favoritos, videos de corno mais apreciados, porno brasileiro com mais likes. Videos porno grátis mais populares.',
-      long: 'Vídeos longos no CORNOS BRASIL. Videos porno amador extensos, videos de corno com mais de 10 minutos, porno brasileiro completo. Videos porno grátis com duração prolongada.',
-      random: 'Vídeos aleatórios no CORNOS BRASIL. Videos porno amador surpresa, videos de corno aleatórios, porno brasileiro variado. Videos porno grátis em ordem aleatória.'
+      recent: 'Assista os vídeos mais recentes de todas as categorias no CORNOS BRASIL. Videos porno amador, videos de corno, porno brasileiro. Os melhores videos porno grátis atualizados diariamente.',
+      popular: 'Os vídeos mais vistos de todas as categorias no CORNOS BRASIL. Videos porno amador populares, videos de corno mais assistidos, porno brasileiro em alta. Videos porno grátis com mais visualizações.',
+      liked: 'Os vídeos mais curtidos de todas as categorias no CORNOS BRASIL. Videos porno amador favoritos, videos de corno mais apreciados, porno brasileiro com mais likes. Videos porno grátis mais populares.',
+      long: 'Vídeos longos de todas as categorias no CORNOS BRASIL. Videos porno amador extensos, videos de corno com mais de 10 minutos, porno brasileiro completo. Videos porno grátis com duração prolongada.',
+      random: 'Vídeos aleatórios de todas as categorias no CORNOS BRASIL. Videos porno amador surpresa, videos de corno aleatórios, porno brasileiro variado. Videos porno grátis em ordem aleatória.'
     }
     
     return filterDescriptions[selectedFilter]
@@ -262,13 +262,13 @@ export default function VideosPage() {
               <div className="flex items-center gap-3 mb-4">
                 <Play className="w-8 h-8 text-theme-primary" />
                 <h1 className="text-3xl font-bold text-theme-primary">
-                  {searchTerm ? `Vídeos de "${searchTerm}"` : 'Todos os Vídeos'}
+                  {searchTerm ? `Vídeos de "${searchTerm}"` : 'Vídeos de Todas as Categorias'}
                 </h1>
               </div>
               <p className="text-theme-secondary mb-6">
                 {searchTerm 
                   ? `Explore vídeos relacionados a "${searchTerm}" no CORNOS BRASIL`
-                  : 'Explore nossa coleção completa de vídeos com filtros avançados'
+                  : 'Explore nossa coleção completa de vídeos de todas as categorias com filtros avançados'
                 }
               </p>
               

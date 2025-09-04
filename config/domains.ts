@@ -87,7 +87,7 @@ export const domainConfigs: Record<string, DomainConfig> = {
   },
   'cornosbrasil.com': {
     name: 'Cornos Brasil',
-    title: 'Corno Videos - Videos de Corno | Porno Amador Brasileiro',
+    title: 'CORNOS BRASIL - Videos de Corno | Porno Brasil | Marido Corno | Videos Porno Amador',
     description: 'Corno videos e videos de corno brasileiros. Porno amador real, videos de corno caseiros, sexo amador brasileiro. O melhor site de corno videos e porno amador do Brasil.',
     keywords: [
       'corno videos',

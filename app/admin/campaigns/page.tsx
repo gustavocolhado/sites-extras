@@ -53,6 +53,7 @@ interface CampaignStats {
   }
   _sum: {
     converted: number
+    revenue: number
   }
 }
 
@@ -274,6 +275,7 @@ export default function AdminCampaigns() {
                     <th className="text-left py-3 px-4 font-medium text-slate-900">Visitas</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-900">Conversões</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-900">Taxa de Conversão</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-900">Valor Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -288,8 +290,71 @@ export default function AdminCampaigns() {
                           {stat._count.id > 0 ? Math.round(((stat._sum.converted || 0) / stat._count.id) * 100 * 100) / 100 : 0}%
                         </span>
                       </td>
+                      <td className="py-3 px-4 text-slate-600 font-medium">
+                        R$ {(stat._sum.revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Valor Total por Fonte */}
+      {campaignStats.length > 0 && (
+        <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-slate-900">Valor Total por Fonte</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 font-medium text-slate-900">Fonte</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-900">Total de Visitas</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-900">Total de Conversões</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-900">Valor Total Gerado</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-900">Valor Médio por Conversão</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    // Agrupar dados por fonte
+                    const sourceStats = campaignStats.reduce((acc, stat) => {
+                      if (!acc[stat.source]) {
+                        acc[stat.source] = {
+                          source: stat.source,
+                          totalVisits: 0,
+                          totalConversions: 0,
+                          totalRevenue: 0
+                        }
+                      }
+                      acc[stat.source].totalVisits += stat._count.id
+                      acc[stat.source].totalConversions += stat._sum.converted
+                      acc[stat.source].totalRevenue += stat._sum.revenue
+                      return acc
+                    }, {} as Record<string, { source: string; totalVisits: number; totalConversions: number; totalRevenue: number }>)
+
+                    return Object.values(sourceStats).map((sourceStat, index) => (
+                      <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-4 font-medium text-slate-900">{sourceStat.source}</td>
+                        <td className="py-3 px-4 text-slate-600">{sourceStat.totalVisits.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-slate-600">{sourceStat.totalConversions.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-slate-600 font-semibold text-emerald-600">
+                          R$ {sourceStat.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          {sourceStat.totalConversions > 0 
+                            ? `R$ ${(sourceStat.totalRevenue / sourceStat.totalConversions).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                            : 'R$ 0,00'
+                          }
+                        </td>
+                      </tr>
+                    ))
+                  })()}
                 </tbody>
               </table>
             </div>

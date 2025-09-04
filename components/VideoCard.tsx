@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock } from 'lucide-react'
+import { Lock, ExternalLink } from 'lucide-react'
 import { useIsPremium } from '@/hooks/usePremiumStatus'
 
 interface VideoCardProps {
@@ -41,8 +41,23 @@ export default function VideoCard({
   onClick 
 }: VideoCardProps) {
   const [showTrailer, setShowTrailer] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const router = useRouter()
   const isPremium = useIsPremium()
+  
+  // Fechar menu de contexto com tecla Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeContextMenu()
+      }
+    }
+
+    if (contextMenu) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [contextMenu])
   
   // Função para construir a URL do thumbnail
   const getThumbnailUrl = (url: string | null | undefined, isIframe: boolean) => {
@@ -103,6 +118,50 @@ export default function VideoCard({
     setShowTrailer(false)
   }
 
+  // Função para lidar com o clique do botão direito
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation() // Impede a propagação do evento
+    
+    // Se o vídeo é premium e o usuário não é premium, não mostrar menu
+    if (premium && !isPremium) {
+      return
+    }
+    
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }
+
+  // Função para fechar o menu de contexto
+  const closeContextMenu = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setContextMenu(null)
+  }
+
+  // Função para abrir vídeo em nova aba
+  const openInNewTab = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const videoUrl = `/video/${id}`
+    window.open(videoUrl, '_blank')
+    closeContextMenu()
+  }
+
+  // Função para copiar link do vídeo
+  const copyVideoLink = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const videoUrl = `${window.location.origin}/video/${id}`
+    try {
+      await navigator.clipboard.writeText(videoUrl)
+      closeContextMenu()
+    } catch (err) {
+      console.error('Erro ao copiar link:', err)
+    }
+  }
+
   // Structured data para SEO
   const structuredData = {
     "@context": "https://schema.org",
@@ -134,6 +193,7 @@ export default function VideoCard({
     <article 
       className="group cursor-pointer" 
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       itemScope
@@ -298,6 +358,45 @@ export default function VideoCard({
           </span>
         )}
       </div>
+      
+      {/* Menu de Contexto */}
+      {contextMenu && (
+        <>
+          {/* Overlay para fechar o menu ao clicar fora */}
+          <div 
+            className="fixed inset-0 z-50"
+            onClick={closeContextMenu}
+          />
+          
+          {/* Menu de contexto */}
+          <div 
+            className="fixed z-50 bg-theme-card border border-theme-border-primary rounded-lg shadow-xl py-1 min-w-48"
+            style={{
+              left: contextMenu.x,
+              top: contextMenu.y,
+              transform: 'translate(-50%, -100%) translateY(-10px)'
+            }}
+          >
+            <button
+              onClick={openInNewTab}
+              className="w-full flex items-center space-x-3 px-4 py-2 text-theme-primary hover:bg-theme-hover transition-colors text-sm"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>Abrir em nova aba</span>
+            </button>
+            
+            <button
+              onClick={copyVideoLink}
+              className="w-full flex items-center space-x-3 px-4 py-2 text-theme-primary hover:bg-theme-hover transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span>Copiar link</span>
+            </button>
+          </div>
+        </>
+      )}
     </article>
   )
 } 

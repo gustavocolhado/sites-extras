@@ -39,15 +39,12 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
         <div className="flex items-center justify-between p-4 border-b border-theme-input">
           <button 
             onClick={onClose}
-            className="text-theme-primary hover:text-accent-red transition-colors"
+            className="text-theme-primary hover:text-accent-red transition-colors mr-2"
           >
             <X size={24} />
           </button>
           
                            <div className="flex items-center space-x-2">
-                   <div className="w-8 h-8 bg-accent-red rounded-full flex items-center justify-center">
-                     <span className="text-white font-bold text-sm">CB</span>
-                   </div>
                    <div>
                      <h1 className="text-xl font-bold text-theme-primary">{siteName}</h1>
                      <p className="text-xs text-theme-secondary">{siteDescription}</p>

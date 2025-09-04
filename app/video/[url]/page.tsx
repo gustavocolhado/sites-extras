@@ -349,6 +349,29 @@ export default function VideoPage() {
     }
   }
 
+  // Função para lidar com clique no título (se tem criador, vai para criador)
+  const handleTitleClick = async () => {
+    if (video?.creator) {
+      try {
+        // Buscar o ID do criador pelo nome
+        const response = await fetch(`/api/creators/search?name=${encodeURIComponent(video.creator)}`)
+        if (response.ok) {
+          const creatorData = await response.json()
+          if (creatorData.id) {
+            router.push(`/creators/${creatorData.id}`)
+            return
+          }
+        }
+        // Fallback: se não encontrar o ID, usar o nome
+        router.push(`/creators/${encodeURIComponent(video.creator)}`)
+      } catch (error) {
+        console.error('Erro ao buscar criador:', error)
+        // Fallback: usar o nome
+        router.push(`/creators/${encodeURIComponent(video.creator)}`)
+      }
+    }
+  }
+
   if (loading) {
     return (
       <Layout>
@@ -406,9 +429,18 @@ export default function VideoPage() {
           {/* Top Bar */}
           <div className="bg-theme-card border border-theme-primary text-theme-primary p-4 rounded-t-lg">
             <div className="flex items-center justify-between">
-              <h1 className="text-lg font-bold truncate flex-1 mr-4">
-                {video.title}
-              </h1>
+              {video.creator ? (
+                <button
+                  onClick={handleTitleClick}
+                  className="text-lg font-bold truncate flex-1 mr-4 text-left hover:text-accent-red transition-colors cursor-pointer"
+                >
+                  {video.title}
+                </button>
+              ) : (
+                <h1 className="text-lg font-bold truncate flex-1 mr-4">
+                  {video.title}
+                </h1>
+              )}
               <div className="flex items-center space-x-2">
                 <span className="bg-accent-red px-2 py-1 rounded text-sm font-bold text-white">
                   {video.duration}
@@ -553,7 +585,16 @@ export default function VideoPage() {
                     <User className="w-5 h-5 text-theme-muted" />
                     <div>
                       <span className="text-sm text-theme-muted">Criador:</span>
-                      <span className="text-sm font-medium text-theme-primary ml-2">{video.creator}</span>
+                      {video.creator ? (
+                        <button
+                          onClick={handleTitleClick}
+                          className="text-sm font-medium text-theme-primary ml-2 hover:text-accent-red transition-colors cursor-pointer"
+                        >
+                          {video.creator}
+                        </button>
+                      ) : (
+                        <span className="text-sm font-medium text-theme-primary ml-2">{video.creator}</span>
+                      )}
                     </div>
                   </div>
 

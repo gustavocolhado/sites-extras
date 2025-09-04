@@ -112,11 +112,33 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Buscar valores monetários por fonte/campanha
+    const sourceRevenue = await prisma.campaignConversion.groupBy({
+      by: ['source'],
+      where: {
+        ...(startDate || endDate ? {
+          convertedAt: {
+            ...(startDate && { gte: new Date(startDate) }),
+            ...(endDate && { lte: new Date(endDate + 'T23:59:59.999Z') })
+          }
+        } : {}),
+        ...(source && { source: { contains: source, mode: 'insensitive' } }),
+        ...(campaign && { campaign: { contains: campaign, mode: 'insensitive' } })
+      },
+      _sum: {
+        amount: true
+      },
+      _count: {
+        id: true
+      }
+    })
+
     // Combinar estatísticas
     const combinedStats = campaignStats.map(stat => {
       const conversion = campaignConversions.find(
         conv => conv.source === stat.source && conv.campaign === stat.campaign
       )
+      const revenue = sourceRevenue.find(rev => rev.source === stat.source)
       return {
         source: stat.source,
         campaign: stat.campaign,
@@ -124,7 +146,8 @@ export async function GET(request: NextRequest) {
           id: stat._count.id
         },
         _sum: {
-          converted: conversion ? conversion._count.id : 0
+          converted: conversion ? conversion._count.id : 0,
+          revenue: revenue ? revenue._sum.amount : 0
         }
       }
     })
