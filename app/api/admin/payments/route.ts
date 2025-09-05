@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || ''
     const endDate = searchParams.get('endDate') || ''
     const status = searchParams.get('status') || 'all'
+    const showDuplicates = searchParams.get('showDuplicates') === 'true'
 
     const skip = (page - 1) * limit
 
@@ -47,11 +48,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar pagamentos
-    const [payments, total] = await Promise.all([
+    const [allPayments, total] = await Promise.all([
       prisma.payment.findMany({
         where,
-        skip,
-        take: limit,
         orderBy: { transactionDate: 'desc' },
         include: {
           user: {
@@ -62,34 +61,89 @@ export async function GET(request: NextRequest) {
             }
           }
         }
+      }).catch(async () => {
+        // Se houver erro com o relacionamento, buscar sem include e depois buscar usuários separadamente
+        const paymentsWithoutUser = await prisma.payment.findMany({
+          where,
+          orderBy: { transactionDate: 'desc' }
+        })
+        
+        // Buscar usuários separadamente
+        const userIds = Array.from(new Set(paymentsWithoutUser.map(p => p.userId).filter(Boolean)))
+        const users = await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, name: true, email: true }
+        })
+        
+        const userMap = new Map(users.map(u => [u.id, u]))
+        
+        return paymentsWithoutUser.map(payment => ({
+          ...payment,
+          user: userMap.get(payment.userId) || null
+        }))
       }),
       prisma.payment.count({ where })
     ])
 
-    // Calcular estatísticas
-    const stats = await prisma.payment.aggregate({
-      where,
-      _sum: {
-        amount: true
-      },
-      _count: {
-        id: true
-      }
-    })
+    let payments: any[]
+    let uniquePaymentsList: any[]
+
+    if (showDuplicates) {
+      // Mostrar apenas duplicados
+      const duplicatesMap = new Map()
+      const uniqueMap = new Map()
+      
+      allPayments.forEach(payment => {
+        const key = `${payment.paymentId}_${payment.userId}_${payment.amount}_${payment.plan}`
+        if (uniqueMap.has(key)) {
+          // É um duplicado
+          if (!duplicatesMap.has(key)) {
+            duplicatesMap.set(key, [uniqueMap.get(key)])
+          }
+          duplicatesMap.get(key).push(payment)
+        } else {
+          uniqueMap.set(key, payment)
+        }
+      })
+
+      // Flatten dos duplicados
+      const allDuplicates = Array.from(duplicatesMap.values()).flat()
+      payments = allDuplicates.slice(skip, skip + limit)
+      uniquePaymentsList = allDuplicates
+    } else {
+      // Remover duplicados baseado em paymentId, userId e amount
+      const uniquePayments = allPayments.reduce((acc, payment) => {
+        const key = `${payment.paymentId}_${payment.userId}_${payment.amount}_${payment.plan}`
+        if (!acc.has(key)) {
+          acc.set(key, payment)
+        }
+        return acc
+      }, new Map())
+
+      payments = Array.from(uniquePayments.values())
+        .slice(skip, skip + limit)
+      uniquePaymentsList = Array.from(uniquePayments.values())
+    }
+
+    // Calcular estatísticas baseadas nos pagamentos únicos
+    const stats = {
+      totalAmount: uniquePaymentsList.reduce((sum, payment) => sum + payment.amount, 0),
+      totalCount: uniquePaymentsList.length
+    }
 
     return NextResponse.json({
       payments,
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit),
-        hasNext: page < Math.ceil(total / limit),
+        total: uniquePaymentsList.length,
+        pages: Math.ceil(uniquePaymentsList.length / limit),
+        hasNext: page < Math.ceil(uniquePaymentsList.length / limit),
         hasPrev: page > 1
       },
       stats: {
-        totalAmount: stats._sum.amount || 0,
-        totalCount: stats._count.id || 0
+        totalAmount: stats.totalAmount,
+        totalCount: stats.totalCount
       }
     })
   } catch (error) {

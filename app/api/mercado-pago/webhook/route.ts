@@ -216,37 +216,60 @@ export async function POST(request: Request) {
 
       console.log('📅 Data de expiração calculada:', expireDate);
 
-      // Criar ou atualizar o Payment baseado na PaymentSession
+      // Verificar se já existe um pagamento com este paymentId
       let payment = await prisma.payment.findFirst({
         where: { paymentId: paymentId },
       });
 
       if (payment) {
-        // Atualizar o pagamento existente
-        await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: paymentStatus,
-            plan: paymentSession.plan,
-            amount: paymentSession.amount,
-          },
-        });
-        console.log('✅ Payment atualizado:', payment.id);
+        // Atualizar o pagamento existente apenas se o status mudou
+        if (payment.status !== paymentStatus) {
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: paymentStatus,
+              plan: paymentSession.plan,
+              amount: paymentSession.amount,
+            },
+          });
+          console.log('✅ Payment atualizado:', payment.id);
+        } else {
+          console.log('ℹ️ Payment já existe com o mesmo status, ignorando atualização:', payment.id);
+        }
       } else {
-        // Criar novo pagamento apenas quando aprovado
-        payment = await prisma.payment.create({
-          data: {
+        // Verificar se existe um pagamento duplicado baseado em userId, amount e plan
+        const duplicatePayment = await prisma.payment.findFirst({
+          where: {
             userId: paymentSession.userId,
-            plan: paymentSession.plan,
             amount: paymentSession.amount,
-            paymentId: paymentId,
-            transactionDate: paymentDate,
-            userEmail: paymentInfo?.payer?.email || '',
+            plan: paymentSession.plan,
             status: paymentStatus,
-            preferenceId: paymentSession.preferenceId,
-          },
+            transactionDate: {
+              gte: new Date(paymentDate.getTime() - 24 * 60 * 60 * 1000), // Últimas 24 horas
+              lte: new Date(paymentDate.getTime() + 24 * 60 * 60 * 1000)
+            }
+          }
         });
-        console.log('✅ Payment criado:', payment.id);
+
+        if (duplicatePayment) {
+          console.log('⚠️ Pagamento duplicado detectado, ignorando criação:', duplicatePayment.id);
+          payment = duplicatePayment;
+        } else {
+          // Criar novo pagamento apenas quando aprovado
+          payment = await prisma.payment.create({
+            data: {
+              userId: paymentSession.userId,
+              plan: paymentSession.plan,
+              amount: paymentSession.amount,
+              paymentId: paymentId,
+              transactionDate: paymentDate,
+              userEmail: paymentInfo?.payer?.email || '',
+              status: paymentStatus,
+              preferenceId: paymentSession.preferenceId,
+            },
+          });
+          console.log('✅ Payment criado:', payment.id);
+        }
       }
 
       // Atualizar a PaymentSession com o paymentId do Mercado Pago

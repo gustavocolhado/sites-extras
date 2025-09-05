@@ -37,7 +37,9 @@ export async function GET(request: NextRequest) {
       usersRegisteredToday,
       revenueToday,
       activeUsersToday,
-      viewsToday
+      // Novas métricas do dia
+      campaignConversionsToday,
+      subscriptionsToday
     ] = await Promise.all([
       // Total de usuários
       prisma.user.count(),
@@ -96,7 +98,9 @@ export async function GET(request: NextRequest) {
           amount: true
         },
         where: {
-          status: 'completed',
+          status: {
+            in: ['completed', 'approved', 'paid']
+          },
           transactionDate: {
             gte: startOfDay,
             lte: endOfDay
@@ -114,13 +118,23 @@ export async function GET(request: NextRequest) {
         }
       }),
 
-      // Visualizações de vídeos hoje (soma das visualizações incrementadas hoje)
-      prisma.video.aggregate({
-        _sum: {
-          viewCount: true
-        },
+      // Conversões de campanha hoje
+      prisma.campaignConversion.count({
         where: {
-          updated_at: {
+          convertedAt: {
+            gte: startOfDay,
+            lte: endOfDay
+          }
+        }
+      }),
+
+      // Assinaturas (pagamentos) hoje
+      prisma.payment.count({
+        where: {
+          status: {
+            in: ['completed', 'approved', 'paid']
+          },
+          transactionDate: {
             gte: startOfDay,
             lte: endOfDay
           }
@@ -141,14 +155,24 @@ export async function GET(request: NextRequest) {
       usersRegisteredToday,
       revenueToday: revenueToday._sum.amount || 0,
       activeUsersToday,
-      viewsToday: viewsToday._sum.viewCount || 0
+      // Novas métricas do dia
+      campaignConversionsToday,
+      subscriptionsToday
     }
 
     console.log('📊 Estatísticas calculadas:', {
       usersRegisteredToday,
       revenueToday: revenueToday._sum.amount || 0,
       activeUsersToday,
-      viewsToday: viewsToday._sum.viewCount || 0
+      campaignConversionsToday,
+      subscriptionsToday
+    })
+
+    console.log('🔍 Debug - Dados brutos:', {
+      revenueTodayRaw: revenueToday,
+      subscriptionsTodayRaw: subscriptionsToday,
+      startOfDay,
+      endOfDay
     })
 
     return NextResponse.json(stats)

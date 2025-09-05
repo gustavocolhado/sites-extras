@@ -51,8 +51,12 @@ export default function AdminPayments() {
     endDate: '',
     status: 'all'
   })
+  const [showDuplicates, setShowDuplicates] = useState(false)
+  const [isRemovingDuplicates, setIsRemovingDuplicates] = useState(false)
+  const [duplicatesPreview, setDuplicatesPreview] = useState<any[]>([])
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
-  const fetchPayments = async (page = 1, startDate = '', endDate = '', status = 'all') => {
+  const fetchPayments = async (page = 1, startDate = '', endDate = '', status = 'all', duplicates = false) => {
     setIsLoading(true)
     try {
       const params = new URLSearchParams({
@@ -60,7 +64,8 @@ export default function AdminPayments() {
         limit: '10',
         startDate,
         endDate,
-        status
+        status,
+        showDuplicates: duplicates.toString()
       })
       
       const response = await fetch(`/api/admin/payments?${params}`)
@@ -78,15 +83,61 @@ export default function AdminPayments() {
   }
 
   useEffect(() => {
-    fetchPayments(1, filters.startDate, filters.endDate, filters.status)
-  }, [])
+    fetchPayments(1, filters.startDate, filters.endDate, filters.status, showDuplicates)
+  }, [showDuplicates])
 
   const handleFilterChange = () => {
-    fetchPayments(1, filters.startDate, filters.endDate, filters.status)
+    fetchPayments(1, filters.startDate, filters.endDate, filters.status, showDuplicates)
   }
 
   const handlePageChange = (newPage: number) => {
-    fetchPayments(newPage, filters.startDate, filters.endDate, filters.status)
+    fetchPayments(newPage, filters.startDate, filters.endDate, filters.status, showDuplicates)
+  }
+
+  const handleToggleDuplicates = () => {
+    setShowDuplicates(!showDuplicates)
+  }
+
+  const handleRemoveDuplicates = async () => {
+    // Primeiro, buscar a lista de duplicados que serão removidos
+    try {
+      const response = await fetch('/api/admin/payments/list-duplicates')
+      if (response.ok) {
+        const data = await response.json()
+        setDuplicatesPreview(data.duplicatesToRemove)
+        setShowConfirmDialog(true)
+      } else {
+        alert('Erro ao carregar lista de duplicados')
+      }
+    } catch (error) {
+      console.error('Erro ao carregar duplicados:', error)
+      alert('Erro ao carregar lista de duplicados')
+    }
+  }
+
+  const confirmRemoveDuplicates = async () => {
+    setShowConfirmDialog(false)
+    setIsRemovingDuplicates(true)
+    
+    try {
+      const response = await fetch('/api/admin/payments/remove-duplicates', {
+        method: 'POST'
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        alert(`${data.removedCount} pagamentos duplicados foram removidos com sucesso!`)
+        // Recarregar a lista
+        fetchPayments(1, filters.startDate, filters.endDate, filters.status, showDuplicates)
+      } else {
+        alert('Erro ao remover duplicados')
+      }
+    } catch (error) {
+      console.error('Erro ao remover duplicados:', error)
+      alert('Erro ao remover duplicados')
+    } finally {
+      setIsRemovingDuplicates(false)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -215,15 +266,46 @@ export default function AdminPayments() {
                 <option value="cancelled">Cancelado</option>
               </select>
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end space-x-2">
               <button
                 onClick={handleFilterChange}
-                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 Filtrar
               </button>
             </div>
           </div>
+          
+          {/* Botões de Duplicados */}
+          <div className="mt-4 flex space-x-3">
+            <button
+              onClick={handleToggleDuplicates}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                showDuplicates 
+                  ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                  : 'bg-orange-100 text-orange-800 hover:bg-orange-200'
+              }`}
+            >
+              {showDuplicates ? 'Ocultar Duplicados' : 'Exibir Duplicados'}
+            </button>
+            
+            <button
+              onClick={handleRemoveDuplicates}
+              disabled={isRemovingDuplicates}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRemovingDuplicates ? 'Removendo...' : 'Excluir Duplicados'}
+            </button>
+          </div>
+          
+          {showDuplicates && (
+            <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-sm text-orange-800">
+                <strong>Modo Duplicados:</strong> Exibindo apenas pagamentos duplicados. 
+                Use o botão "Excluir Duplicados" para remover automaticamente os registros duplicados.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -231,7 +313,7 @@ export default function AdminPayments() {
       <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle className="text-slate-900">
-            Pagamentos ({pagination.total} total)
+            {showDuplicates ? 'Pagamentos Duplicados' : 'Pagamentos'} ({pagination.total} total)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -248,7 +330,9 @@ export default function AdminPayments() {
               </thead>
               <tbody>
                 {payments.map((payment) => (
-                  <tr key={payment.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                  <tr key={payment.id} className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${
+                    showDuplicates ? 'bg-orange-50/50' : ''
+                  }`}>
                     <td className="py-3 px-4">
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mr-3">
@@ -338,6 +422,80 @@ export default function AdminPayments() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Confirmação */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              Confirmar Remoção de Duplicados
+            </h3>
+            
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>⚠️ Atenção:</strong> Os pagamentos originais (mais antigos) serão mantidos. 
+                Apenas as cópias duplicadas serão removidas.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-slate-600 mb-2">
+                <strong>{duplicatesPreview.length}</strong> pagamentos duplicados serão removidos:
+              </p>
+              
+              <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left py-2 px-3 font-medium text-slate-900">Usuário</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-900">Valor</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-900">Data</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-900">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {duplicatesPreview.map((duplicate, index) => (
+                      <tr key={index} className="border-b border-slate-100">
+                        <td className="py-2 px-3">
+                          <div className="font-medium text-slate-900">
+                            {duplicate.userEmail || 'Email não disponível'}
+                          </div>
+                        </td>
+                        <td className="py-2 px-3 text-slate-600">
+                          R$ {duplicate.amount.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3 text-slate-600">
+                          {new Date(duplicate.transactionDate).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(duplicate.status)}`}>
+                            {getStatusText(duplicate.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowConfirmDialog(false)}
+                className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmRemoveDuplicates}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Confirmar Remoção
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

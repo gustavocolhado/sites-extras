@@ -163,18 +163,46 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
       }
     })
 
-    // Criar registro no modelo Payment para histórico
-    await prisma.payment.create({
-      data: {
-        userId: paymentSession.userId,
-        plan: paymentSession.plan,
-        amount: paymentSession.amount,
-        userEmail: paymentSession.userEmail || '',
-        status: 'paid',
-        paymentId: parseInt(pixId),
-        duration: getPlanDurationInDays(paymentSession.plan)
-      }
+    // Verificar se já existe um pagamento com este paymentId
+    const existingPayment = await prisma.payment.findFirst({
+      where: { paymentId: parseInt(pixId) }
     })
+
+    if (!existingPayment) {
+      // Verificar se existe um pagamento duplicado baseado em userId, amount e plan
+      const duplicatePayment = await prisma.payment.findFirst({
+        where: {
+          userId: paymentSession.userId,
+          amount: paymentSession.amount,
+          plan: paymentSession.plan,
+          status: 'paid',
+          transactionDate: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Últimas 24 horas
+            lte: new Date(Date.now() + 24 * 60 * 60 * 1000)
+          }
+        }
+      })
+
+      if (!duplicatePayment) {
+        // Criar registro no modelo Payment para histórico
+        await prisma.payment.create({
+          data: {
+            userId: paymentSession.userId,
+            plan: paymentSession.plan,
+            amount: paymentSession.amount,
+            userEmail: paymentSession.userEmail || '',
+            status: 'paid',
+            paymentId: parseInt(pixId),
+            duration: getPlanDurationInDays(paymentSession.plan)
+          }
+        })
+        console.log('✅ Payment criado via Pushin Pay webhook')
+      } else {
+        console.log('⚠️ Pagamento duplicado detectado no Pushin Pay, ignorando criação:', duplicatePayment.id)
+      }
+    } else {
+      console.log('ℹ️ Payment já existe com este paymentId, ignorando criação:', existingPayment.id)
+    }
 
     console.log('Acesso premium ativado via webhook:', {
       userId: paymentSession.userId,

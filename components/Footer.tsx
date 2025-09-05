@@ -25,7 +25,7 @@ export default function Footer() {
     : domainConfig.description
 
   return (
-    <footer className="relative bg-gradient-to-br from-theme-card via-theme-card to-theme-primary/10 border-t border-theme-border-primary mt-auto overflow-hidden">
+    <footer className="relative bg-gradient-to-br from-theme-card via-theme-card to-theme-primary/10 border-t border-theme-border-primary mt-auto overflow-hidden py-12">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-32 h-32 bg-theme-primary rounded-full -translate-x-16 -translate-y-16"></div>
@@ -33,7 +33,7 @@ export default function Footer() {
         <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-theme-primary rounded-full"></div>
       </div>
 
-      <div className="container mx-auto px-4 py-12 relative z-10">
+      <div className="container-content mx-auto relative z-10">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           {/* Brand Section */}

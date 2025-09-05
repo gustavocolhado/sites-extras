@@ -16,7 +16,9 @@ import {
   CreditCard,
   ThumbsUp,
   Bookmark,
-  Clock
+  Clock,
+  Target,
+  Crown
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -32,7 +34,9 @@ interface DashboardStats {
   usersRegisteredToday: number
   revenueToday: number
   activeUsersToday: number
-  viewsToday: number
+  // Novas métricas do dia
+  campaignConversionsToday: number
+  subscriptionsToday: number
 }
 
 interface RecentActivity {
@@ -63,7 +67,9 @@ export default function AdminDashboard() {
     usersRegisteredToday: 0,
     revenueToday: 0,
     activeUsersToday: 0,
-    viewsToday: 0
+    // Novas métricas do dia
+    campaignConversionsToday: 0,
+    subscriptionsToday: 0
   })
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -181,7 +187,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -209,6 +215,30 @@ export default function AdminDashboard() {
           <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm opacity-90">Conversões de Campanha</p>
+                <p className="text-2xl font-bold">{stats.campaignConversionsToday}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Target className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-90">Assinaturas</p>
+                <p className="text-2xl font-bold">{stats.subscriptionsToday}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Crown className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm opacity-90">Usuários Ativos</p>
                 <p className="text-2xl font-bold">{stats.activeUsersToday}</p>
               </div>
@@ -218,17 +248,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-90">Visualizações</p>
-                <p className="text-2xl font-bold">{stats.viewsToday.toLocaleString()}</p>
-              </div>
-              <div className="p-2 bg-white/20 rounded-lg">
-                <Eye className="h-5 w-5" />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
