@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcrypt'
 import { prisma } from '@/lib/prisma'
+import { normalizeEmail } from '@/lib/utils'
 
 // Função helper para obter duração do plano em dias
 function getPlanDuration(planId: string): number {
@@ -18,8 +19,11 @@ export async function POST(request: NextRequest) {
   try {
     let { email, password, confirmPassword, planId, paymentId, amount, source, campaign } = await request.json()
 
+    // Normalizar email para minúsculas
+    const normalizedEmail = normalizeEmail(email)
+
     // Validação básica
-    if (!email || !password || !confirmPassword) {
+    if (!normalizedEmail || !password || !confirmPassword) {
       return NextResponse.json(
         { error: 'Email, senha e confirmação são obrigatórios' },
         { status: 400 }
@@ -44,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Buscar usuário
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })
 
     if (!user) {
@@ -127,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // Atualizar senha e ativar premium
     const updatedUser = await prisma.user.update({
-      where: { email },
+      where: { email: normalizedEmail },
       data: {
         password: hashedPassword,
         tempPassword: false,
@@ -146,7 +150,7 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             plan: planId,
             amount: amount / 100, // Converter de centavos para reais
-            userEmail: email,
+            userEmail: normalizedEmail,
             status: 'paid',
             paymentId: paymentId || null,
             duration: getPlanDuration(planId),
@@ -206,7 +210,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Senha atualizada e premium ativado:', { 
       userId: user.id, 
-      email,
+      email: normalizedEmail,
       expireDate
     })
 

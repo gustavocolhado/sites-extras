@@ -26,9 +26,13 @@ import VideoBreadcrumbs from '@/components/VideoBreadcrumbs'
 import { useRelatedVideos } from '@/hooks/useRelatedVideos'
 import { useVideoActions } from '@/hooks/useVideoActions'
 import { usePremiumStatus } from '@/hooks/usePremiumStatus'
+import { useVideoPreload } from '@/hooks/useVideoPreload'
 import AdIframe300x250 from '@/components/ads/300x250'
 import AdIframe728x90 from '@/components/ads/728x90'
 import AdIframe300x100 from '@/components/ads/300x100'
+import VideoAdBanner from '@/components/ads/VideoAdBanner'
+import PremiumVideoTeaser from '@/components/ads/PremiumVideoTeaser'
+import VideoPreloadIndicator from '@/components/VideoPreloadIndicator'
 
 interface VideoData {
   id: string
@@ -76,6 +80,13 @@ export default function VideoPage() {
   // Hook para ações do vídeo
   const { isLiked, isFavorited, isLoading: actionsLoading, toggleLike, toggleFavorite, recordView } = useVideoActions({
     videoId: videoUrl
+  })
+
+  // Hook para preload inteligente de vídeos relacionados
+  const { isVideoPreloaded, preloadProgress } = useVideoPreload({
+    videoUrls: relatedVideos.map(v => v.videoUrl).filter((url): url is string => Boolean(url)),
+    maxPreload: 3,
+    preloadDelay: 2000
   })
 
   // Verificar se o vídeo é premium e o usuário não é premium
@@ -644,23 +655,43 @@ export default function VideoPage() {
                   </div>
                 ) : relatedVideos.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
-                    {relatedVideos.slice(0, 20).map((relatedVideo) => (
-                      <VideoCard
-                        key={relatedVideo.id}
-                        id={relatedVideo.id}
-                        title={relatedVideo.title}
-                        duration={relatedVideo.duration}
-                        thumbnailUrl={relatedVideo.thumbnailUrl}
-                        videoUrl={relatedVideo.videoUrl || relatedVideo.id}
-                        isIframe={relatedVideo.iframe || false}
-                        premium={relatedVideo.premium || false}
-                        viewCount={relatedVideo.viewCount}
-
-                        category={relatedVideo.category}
-                        creator={relatedVideo.creator || undefined}
-                        uploader={null}
-                      />
-                    ))}
+                    {relatedVideos.slice(0, 20).map((relatedVideo, index) => {
+                      const items = []
+                      
+                      // Adicionar o vídeo relacionado
+                      items.push(
+                        <VideoCard
+                          key={relatedVideo.id}
+                          id={relatedVideo.id}
+                          title={relatedVideo.title}
+                          duration={relatedVideo.duration}
+                          thumbnailUrl={relatedVideo.thumbnailUrl}
+                          videoUrl={relatedVideo.videoUrl || relatedVideo.id}
+                          isIframe={relatedVideo.iframe || false}
+                          premium={relatedVideo.premium || false}
+                          viewCount={relatedVideo.viewCount}
+                          category={relatedVideo.category}
+                          creator={relatedVideo.creator || undefined}
+                          uploader={null}
+                        />
+                      )
+                      
+                      // Adicionar anúncio a cada 8 vídeos relacionados para usuários não premium
+                      if (!session?.user?.premium && (index + 1) % 8 === 0) {
+                        items.push(
+                          <VideoAdBanner key={`ad-related-${index}`} />
+                        )
+                      }
+                      
+                      // Adicionar PremiumVideoTeaser a cada 12 vídeos relacionados para usuários não premium
+                      if (!session?.user?.premium && (index + 1) % 12 === 0) {
+                        items.push(
+                          <PremiumVideoTeaser key={`teaser-related-${index}`} />
+                        )
+                      }
+                      
+                      return items
+                    }).flat()}
                   </div>
                 ) : (
                   <p className="text-theme-muted text-sm text-center py-8">Nenhum vídeo relacionado encontrado</p>
@@ -696,6 +727,12 @@ export default function VideoPage() {
           </div>
         </div>
       </main>
+
+      {/* Indicador de Preload */}
+      <VideoPreloadIndicator 
+        progress={preloadProgress} 
+        isPreloading={preloadProgress < 1 && relatedVideos.length > 0}
+      />
         </Layout>
       </>
     )

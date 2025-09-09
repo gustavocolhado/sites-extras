@@ -18,7 +18,8 @@ import {
   Tag,
   FolderOpen,
   AlertTriangle,
-  CreditCard
+  CreditCard,
+  Mail
 } from 'lucide-react'
 
 const menuItems = [
@@ -46,6 +47,11 @@ const menuItems = [
     title: 'Campanhas',
     href: '/admin/campaigns',
     icon: Target
+  },
+  {
+    title: 'Email Marketing',
+    href: '/admin/email-marketing',
+    icon: Mail
   },
   {
     title: 'Criadores',
@@ -99,7 +105,7 @@ export default function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   return (
-    <div className={`bg-white/80 backdrop-blur-md shadow-lg ${isCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 min-h-screen border-r border-slate-200`}>
+    <div className={`bg-slate-800/90 backdrop-blur-md shadow-lg ${isCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 min-h-screen border-r border-slate-700`}>
       <div className="p-4">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
@@ -109,10 +115,10 @@ export default function AdminSidebar() {
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
           >
             <svg
-              className="w-4 h-4 text-slate-600"
+              className="w-4 h-4 text-slate-300"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -140,11 +146,11 @@ export default function AdminSidebar() {
                   href={item.href}
                   className={`flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border-r-2 border-indigo-500 shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-gradient-to-r from-indigo-900/50 to-purple-900/50 text-indigo-300 border-r-2 border-indigo-400 shadow-sm'
+                      : 'text-slate-300 hover:bg-slate-700 hover:text-slate-100'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-indigo-600' : 'text-slate-500'}`} />
+                  <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
                   {!isCollapsed && <span>{item.title}</span>}
                 </Link>
               </li>
@@ -155,7 +161,7 @@ export default function AdminSidebar() {
 
       <div className="absolute bottom-4 left-4 right-4">
         <button
-          className="flex items-center w-full px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors"
+          className="flex items-center w-full px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-slate-100 rounded-lg transition-colors"
         >
           <LogOut className="w-5 h-5 mr-3" />
           {!isCollapsed && <span>Sair</span>}

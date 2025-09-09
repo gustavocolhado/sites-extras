@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { normalizeEmail } from '@/lib/utils'
 import crypto from 'crypto'
 import nodemailer from 'nodemailer'
 
@@ -45,7 +46,10 @@ export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()
 
-    if (!email) {
+    // Normalizar email para minúsculas
+    const normalizedEmail = normalizeEmail(email)
+
+    if (!normalizedEmail) {
       return NextResponse.json(
         { error: 'Email é obrigatório' },
         { status: 400 }
@@ -54,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Verifica se o usuário existe
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     })
 
     if (!user) {
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Salva o token no banco
     await prisma.user.update({
-      where: { email },
+      where: { email: normalizedEmail },
       data: {
         resetToken,
         resetTokenExpiration,
@@ -85,7 +89,7 @@ export async function POST(request: NextRequest) {
     const fromEmail = process.env.SMTP_USER || process.env.EMAIL_USER
     const mailOptions = {
       from: fromEmail,
-      to: email,
+      to: normalizedEmail,
       subject: 'Recuperação de Senha - CORNOS BRASIL',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

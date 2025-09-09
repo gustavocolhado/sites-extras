@@ -20,6 +20,7 @@ const mercadopago = new MercadoPagoConfig({
 interface CreateSubscriptionRequest {
   planId: string
   paymentMethod: 'stripe' | 'mercadopago'
+  userEmail?: string
 }
 
 // Mapeamento de preços e informações por plano
@@ -48,6 +49,17 @@ const planData = {
     name: 'Premium Vitalício',
     price: 49990, // R$ 999,90 em centavos
     description: 'Acesso vitalício ao conteúdo'
+  },
+  // Planos promocionais para campanhas
+  'campaign-monthly': {
+    name: 'Premium Mensal - Oferta Especial',
+    price: 990, // R$ 9,90 em centavos
+    description: 'Acesso completo por 1 mês - 50% de desconto'
+  },
+  'campaign-quarterly': {
+    name: 'Premium Trimestral - Oferta Especial',
+    price: 1990, // R$ 19,90 em centavos
+    description: 'Acesso completo por 3 meses - 67% de desconto'
   }
 }
 
@@ -80,16 +92,25 @@ export async function POST(request: NextRequest) {
   try {
     // Verificar autenticação
     const session = await getServerSession(authOptions)
+    const body: CreateSubscriptionRequest = await request.json()
+    const { planId, paymentMethod, userEmail } = body
+
+    // Permitir acesso se for plano de campanha e houver email
+    const isCampaignPlan = planId.startsWith('campaign-')
     
-    if (!session?.user) {
+    if (!session?.user && !isCampaignPlan) {
       return NextResponse.json(
         { error: 'Usuário não autenticado' },
         { status: 401 }
       )
     }
 
-    const body: CreateSubscriptionRequest = await request.json()
-    const { planId, paymentMethod } = body
+    if (isCampaignPlan && !userEmail) {
+      return NextResponse.json(
+        { error: 'Email necessário para planos de campanha' },
+        { status: 400 }
+      )
+    }
 
     // Validar dados
     if (!planId || !paymentMethod) {
@@ -108,9 +129,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Obter dados do usuário autenticado
-    const userId = session.user.id || session.user.email || 'unknown'
-    const userEmail = session.user.email || 'user@example.com'
+    // Obter dados do usuário (autenticado ou via email)
+    let userId: string
+    let finalUserEmail: string
+    
+    if (session?.user) {
+      userId = session.user.id || session.user.email || 'unknown'
+      finalUserEmail = session.user.email || 'user@example.com'
+    } else if (userEmail) {
+      // Para planos de campanha, buscar usuário pelo email
+      const user = await prisma.user.findUnique({
+        where: { email: userEmail },
+        select: { id: true, email: true }
+      })
+      
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Usuário não encontrado com este email' },
+          { status: 404 }
+        )
+      }
+      
+      userId = user.id
+      finalUserEmail = user.email || userEmail || 'user@example.com'
+    } else {
+      return NextResponse.json(
+        { error: 'Dados do usuário não fornecidos' },
+        { status: 400 }
+      )
+    }
 
     // Criar PaymentSession primeiro
     const paymentSession = await prisma.paymentSession.create({
@@ -119,6 +166,8 @@ export async function POST(request: NextRequest) {
         amount: plan.price / 100, // Converter de centavos para reais
         userId: userId,
         status: 'pending',
+        userEmail: finalUserEmail,
+        ...(isCampaignPlan && { promotionCode: 'CAMPAIGN_PROMO' })
       },
     })
 
@@ -131,9 +180,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (paymentMethod === 'stripe') {
-      return await handleStripeSubscription(plan, userEmail, userId, paymentSession.id)
+      return await handleStripeSubscription(plan, finalUserEmail, userId, paymentSession.id)
     } else {
-      return await handleMercadoPagoSubscription(plan, userEmail, userId, paymentSession.id)
+      return await handleMercadoPagoSubscription(plan, finalUserEmail, userId, paymentSession.id, planId)
     }
   } catch (error) {
     console.error('Erro ao criar assinatura:', error)
@@ -215,14 +264,29 @@ async function handleMercadoPagoSubscription(
   plan: { name: string; price: number; description: string },
   userEmail: string,
   userId: string,
-  paymentSessionId: string
+  paymentSessionId: string,
+  planId: string
 ) {
   try {
     // Garantir URLs válidas
     const baseUrl = process.env.HOST_URL
-    const successUrl = ensureValidUrl(baseUrl, `/premium/success?paymentSessionId=${paymentSessionId}`)
-    const failureUrl = ensureValidUrl(baseUrl, `/premium/cancel`)
-    const pendingUrl = ensureValidUrl(baseUrl, `/premium/pending`)
+    const isCampaignPlan = planId.startsWith('campaign-')
+    
+    const successUrl = ensureValidUrl(baseUrl, 
+      isCampaignPlan 
+        ? `/campaign-premium/success?paymentSessionId=${paymentSessionId}`
+        : `/premium/success?paymentSessionId=${paymentSessionId}`
+    )
+    const failureUrl = ensureValidUrl(baseUrl, 
+      isCampaignPlan 
+        ? `/campaign-premium/cancel`
+        : `/premium/cancel`
+    )
+    const pendingUrl = ensureValidUrl(baseUrl, 
+      isCampaignPlan 
+        ? `/campaign-premium/pending`
+        : `/premium/pending`
+    )
     const webhookUrl = ensureValidUrl(baseUrl, `/api/mercado-pago/webhook`)
     
     console.log('URLs do Mercado Pago:', { 
@@ -276,6 +340,7 @@ async function handleMercadoPagoSubscription(
     })
 
     return NextResponse.json({
+      checkoutUrl: response.init_point,
       initPoint: response.init_point,
       preferenceId: response.id,
       paymentSessionId: paymentSessionId,

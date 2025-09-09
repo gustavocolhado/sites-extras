@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
           premium: true,
           created_at: true,
           update_at: true,
-          access: true
+          access: true,
+          acceptPromotionalEmails: true
         }
       }),
       prisma.user.count({ where })

@@ -153,15 +153,15 @@ export default function VideoJSPlayer({
       return
     }
 
-         const finalVideoUrl = getVideoUrl(videoUrl)
-     const finalPosterUrl = poster ? getPosterUrl(poster) : ''
-     const videoType = getVideoType(finalVideoUrl)
+    const finalVideoUrl = getVideoUrl(videoUrl)
+    const finalPosterUrl = poster ? getPosterUrl(poster) : ''
+    const videoType = getVideoType(finalVideoUrl)
 
-     // Timeout para garantir que o loading não fique preso
-     const loadingTimeout = setTimeout(() => {
-       console.log('⏰ Player: Timeout de loading, removendo overlay')
-       setIsLoading(false)
-     }, 10000) // 10 segundos
+    // Timeout para garantir que o loading não fique preso
+    const loadingTimeout = setTimeout(() => {
+      console.log('⏰ Player: Timeout de loading, removendo overlay')
+      setIsLoading(false)
+    }, 10000) // 10 segundos
 
     console.log('🎬 Player: Inicializando com:', {
       finalVideoUrl,
@@ -172,13 +172,29 @@ export default function VideoJSPlayer({
       controls
     })
 
-    // Configurar atributos do vídeo
+    // Configurar atributos do vídeo com otimizações
     video.poster = finalPosterUrl
     video.autoplay = autoPlay
     video.muted = muted
     video.loop = loop
     video.controls = controls
     video.preload = preload
+    
+    // Otimizações de performance
+    video.playsInline = true
+    video.disablePictureInPicture = false
+    video.crossOrigin = 'anonymous'
+    
+    // Configurar qualidade adaptativa se disponível
+    if ('requestVideoFrameCallback' in video) {
+      video.requestVideoFrameCallback(() => {
+        // Otimizar qualidade baseada na conexão
+        const connection = (navigator as any).connection
+        if (connection && connection.effectiveType === 'slow-2g') {
+          video.playbackRate = 0.75
+        }
+      })
+    }
 
     // Limpar instância anterior do HLS
     if (hlsRef.current) {
@@ -295,11 +311,35 @@ export default function VideoJSPlayer({
        setIsLoading(false)
      }
 
-     const handleLoadedData = () => {
-       console.log('✅ Player: Dados carregados')
-       clearTimeout(loadingTimeout)
-       setIsLoading(false)
-     }
+    const handleLoadedData = () => {
+      console.log('✅ Player: Dados carregados')
+      clearTimeout(loadingTimeout)
+      setIsLoading(false)
+    }
+
+    const handleProgress = () => {
+      // Preload inteligente baseado no progresso
+      if (video.buffered.length > 0) {
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1)
+        const currentTime = video.currentTime
+        const duration = video.duration
+        
+        // Se temos mais de 30 segundos carregados, reduzir prioridade
+        if (bufferedEnd - currentTime > 30) {
+          video.preload = 'metadata'
+        }
+      }
+    }
+
+    const handleWaiting = () => {
+      console.log('🎬 Player: Buffering...')
+      setIsLoading(true)
+    }
+
+    const handlePlaying = () => {
+      console.log('🎬 Player: Playing')
+      setIsLoading(false)
+    }
 
     const handleError = (e: Event) => {
       console.error('❌ Player: Erro no vídeo:', e)
@@ -347,6 +387,9 @@ export default function VideoJSPlayer({
      video.addEventListener('loadeddata', handleLoadedData)
      video.addEventListener('canplay', handleCanPlay)
      video.addEventListener('canplaythrough', handleCanPlayThrough)
+     video.addEventListener('progress', handleProgress)
+     video.addEventListener('waiting', handleWaiting)
+     video.addEventListener('playing', handlePlaying)
      video.addEventListener('error', handleError)
 
          // Cleanup
@@ -358,6 +401,9 @@ export default function VideoJSPlayer({
        video.removeEventListener('loadeddata', handleLoadedData)
        video.removeEventListener('canplay', handleCanPlay)
        video.removeEventListener('canplaythrough', handleCanPlayThrough)
+       video.removeEventListener('progress', handleProgress)
+       video.removeEventListener('waiting', handleWaiting)
+       video.removeEventListener('playing', handlePlaying)
        video.removeEventListener('error', handleError)
        
        if (hlsRef.current) {

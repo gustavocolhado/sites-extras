@@ -3,6 +3,7 @@ import { AuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
+import { normalizeEmail } from '@/lib/utils'
 import bcrypt from 'bcrypt'
 
 async function verifyPassword(inputPassword: string, storedPassword: string): Promise<boolean> {
@@ -28,8 +29,11 @@ export const authOptions: AuthOptions = {
           throw new Error('Email e senha são obrigatórios')
         }
 
+        // Normalizar email para minúsculas
+        const normalizedEmail = normalizeEmail(email)
+
         const user = await prisma.user.findUnique({
-          where: { email },
+          where: { email: normalizedEmail },
         })
 
         if (!user || !user.password) {
@@ -43,7 +47,7 @@ export const authOptions: AuthOptions = {
 
         if (!user.signupSource) {
           await prisma.user.update({
-            where: { email },
+            where: { email: normalizedEmail },
             data: { signupSource: source },
           })
         }
@@ -74,16 +78,19 @@ export const authOptions: AuthOptions = {
 
       if (account?.provider === 'google' && user.email) {
         try {
+          // Normalizar email para minúsculas
+          const normalizedEmail = normalizeEmail(user.email)
+          
           // Busca o usuário pelo e-mail
           let dbUser = await prisma.user.findUnique({
-            where: { email: user.email },
+            where: { email: normalizedEmail },
           })
 
           if (!dbUser) {
             // Cria um novo usuário se não existir
             dbUser = await prisma.user.create({
               data: {
-                email: user.email,
+                email: normalizedEmail,
                 name: user.name || profile?.name,
                 signupSource: source,
                 premium: false,
@@ -137,8 +144,11 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (token && token.email) {
+        // Normalizar email para minúsculas
+        const normalizedEmail = normalizeEmail(token.email as string)
+        
         const user = await prisma.user.findUnique({
-          where: { email: token.email as string },
+          where: { email: normalizedEmail },
         })
 
         if (user) {

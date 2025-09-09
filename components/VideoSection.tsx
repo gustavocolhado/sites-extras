@@ -9,6 +9,9 @@ import Pagination from './Pagination'
 import { useVideos } from '@/hooks/useVideos'
 import { usePremiumStatus } from '@/hooks/usePremiumStatus'
 import { formatDuration } from '@/utils/formatDuration'
+import VideoAdBanner from './ads/VideoAdBanner'
+import PremiumVideoTeaser from './ads/PremiumVideoTeaser'
+import { useSession } from 'next-auth/react'
 
 export default function VideoSection() {
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -17,6 +20,7 @@ export default function VideoSection() {
   const [vipCategory, setVipCategory] = useState<'VIP' | 'VIP Amadores'>('VIP')
   const router = useRouter()
   const { isPremium } = usePremiumStatus()
+  const { data: session } = useSession()
   
   // Sempre usar filtro aleatório na página inicial para alternar os vídeos
   const effectiveFilter = 'random'
@@ -143,24 +147,44 @@ export default function VideoSection() {
 
       {/* Video Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
-        {videos.map((video) => (
-          <VideoCard
-            key={video.id}
-            id={video.id}
-            title={video.title}
-            duration={video.duration ? formatDuration(video.duration) : '0:00'}
-            thumbnailUrl={video.thumbnailUrl}
-            videoUrl={video.videoUrl}
-            trailerUrl={video.trailerUrl || undefined}
-            isIframe={video.iframe}
-            premium={video.premium}
-            viewCount={video.viewCount}
-
-            category={video.category}
-            creator={video.creator || undefined}
-            onClick={handleVideoClick}
-          />
-        ))}
+        {videos.map((video, index) => {
+          const items = []
+          
+          // Adicionar o vídeo
+          items.push(
+            <VideoCard
+              key={video.id}
+              id={video.id}
+              title={video.title}
+              duration={video.duration ? formatDuration(video.duration) : '0:00'}
+              thumbnailUrl={video.thumbnailUrl}
+              videoUrl={video.videoUrl}
+              trailerUrl={video.trailerUrl || undefined}
+              isIframe={video.iframe}
+              premium={video.premium}
+              viewCount={video.viewCount}
+              category={video.category}
+              creator={video.creator || undefined}
+              onClick={handleVideoClick}
+            />
+          )
+          
+          // Adicionar anúncio a cada 12 vídeos para usuários não premium
+          if (!session?.user?.premium && (index + 1) % 12 === 0) {
+            items.push(
+              <VideoAdBanner key={`ad-${index}`} />
+            )
+          }
+          
+          // Adicionar PremiumVideoTeaser a cada 18 vídeos para usuários não premium
+          if (!session?.user?.premium && (index + 1) % 18 === 0) {
+            items.push(
+              <PremiumVideoTeaser key={`teaser-${index}`} />
+            )
+          }
+          
+          return items
+        }).flat()}
       </div>
 
       {/* Loading State */}

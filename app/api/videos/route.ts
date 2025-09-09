@@ -136,26 +136,29 @@ export async function GET(request: NextRequest) {
     let totalVideos
 
     if (isUserPremium) {
-      // Para usuários premium: retornar apenas vídeos premium
-      let vipWhereClause = {
+      // Para usuários premium: retornar vídeos premium E gratuitos
+      let premiumWhereClause = {
         ...whereClause,
         premium: true
       }
       
-      // Se há um termo de busca, buscar em todas as categorias premium
-      // Se não há busca, usar categoria especificada ou VIP como padrão
+      let freeWhereClause = {
+        ...whereClause,
+        premium: false
+      }
+      
+      // Se há um termo de busca, buscar em todas as categorias
+      // Se não há busca, usar categoria especificada ou VIP como padrão para premium
       if (!search) {
-        vipWhereClause.category = {
+        premiumWhereClause.category = {
           has: category || 'VIP'
         }
       }
       
-
-      
       if (filter === 'random') {
-        // Para aleatório com usuários premium
+        // Para aleatório com usuários premium - misturar premium e gratuitos
         const allPremiumVideos = await prisma.video.findMany({
-          where: vipWhereClause,
+          where: premiumWhereClause,
           select: {
             id: true,
             title: true,
@@ -174,19 +177,43 @@ export async function GET(request: NextRequest) {
             created_at: true
           }
         })
+
+        const allFreeVideos = await prisma.video.findMany({
+          where: freeWhereClause,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            url: true,
+            videoUrl: true,
+            viewCount: true,
+            likesCount: true,
+            thumbnailUrl: true,
+            duration: true,
+            premium: true,
+            iframe: true,
+            trailerUrl: true,
+            category: true,
+            creator: true,
+            created_at: true
+          }
+        })
+
+        // Combinar todos os vídeos
+        const allVideos = [...allPremiumVideos, ...allFreeVideos]
 
         // Usar timestamp como seed para garantir vídeos diferentes a cada chamada
         const seed = timestamp ? parseInt(timestamp) % 1000000 : page
-        const shuffled = shuffleArray(allPremiumVideos, seed)
+        const shuffled = shuffleArray(allVideos, seed)
         videos = shuffled.slice(skip, skip + limit)
-        totalVideos = allPremiumVideos.length
+        totalVideos = allVideos.length
       } else {
-        // Busca normal com paginação para usuários premium
-        videos = await prisma.video.findMany({
-          where: vipWhereClause,
+        // Busca normal com paginação para usuários premium - misturar premium e gratuitos
+        const premiumVideos = await prisma.video.findMany({
+          where: premiumWhereClause,
           orderBy,
-          skip,
-          take: limit,
+          skip: Math.floor(skip * 0.6), // 60% premium
+          take: Math.floor(limit * 0.6),
           select: {
             id: true,
             title: true,
@@ -206,12 +233,56 @@ export async function GET(request: NextRequest) {
           }
         })
 
-        totalVideos = await prisma.video.count({
-          where: vipWhereClause
+        const freeVideos = await prisma.video.findMany({
+          where: freeWhereClause,
+          orderBy,
+          skip: Math.floor(skip * 0.4), // 40% gratuitos
+          take: Math.floor(limit * 0.4),
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            url: true,
+            videoUrl: true,
+            viewCount: true,
+            likesCount: true,
+            thumbnailUrl: true,
+            duration: true,
+            premium: true,
+            iframe: true,
+            trailerUrl: true,
+            category: true,
+            creator: true,
+            created_at: true
+          }
         })
+
+        // Misturar vídeos premium e gratuitos
+        const mixedVideos = [...premiumVideos]
+        freeVideos.forEach((freeVideo, index) => {
+          const insertPositions = [1, 3, 5, 7, 9]
+          const insertPosition = insertPositions[index] || (index + 1) * 2
+          
+          if (insertPosition < mixedVideos.length) {
+            mixedVideos.splice(insertPosition, 0, freeVideo)
+          } else {
+            mixedVideos.push(freeVideo)
+          }
+        })
+
+        videos = mixedVideos.slice(0, limit)
+        
+        // Contar total de vídeos (premium + gratuitos)
+        const totalPremium = await prisma.video.count({
+          where: premiumWhereClause
+        })
+        const totalFree = await prisma.video.count({
+          where: freeWhereClause
+        })
+        totalVideos = totalPremium + totalFree
       }
       
-      // Processar vídeos premium
+      // Processar vídeos
       videos = processVideos(videos)
       
       

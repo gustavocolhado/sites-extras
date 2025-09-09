@@ -315,6 +315,36 @@ export async function POST(request: Request) {
           expireDate: expireDate,
           paymentId: paymentId
         });
+
+        // Processar conversão de campanha se existir
+        if (paymentSession.campaignId && payment) {
+          try {
+            // Registrar conversão da campanha
+            await prisma.emailCampaignConversion.create({
+              data: {
+                campaignId: paymentSession.campaignId,
+                userId: user.id,
+                planType: paymentSession.plan,
+                amount: paymentSession.amount,
+                paymentId: payment.id
+              }
+            });
+
+            // Atualizar contador de conversões na campanha
+            await prisma.emailCampaign.update({
+              where: { id: paymentSession.campaignId },
+              data: {
+                conversions: {
+                  increment: 1
+                }
+              }
+            });
+
+            console.log(`🎉 CONVERSÃO DE CAMPANHA REGISTRADA: ${user.email} - ${paymentSession.plan} - R$ ${paymentSession.amount} - Campanha: ${paymentSession.campaignId}`);
+          } catch (campaignError) {
+            console.error('❌ Erro ao registrar conversão de campanha:', campaignError);
+          }
+        }
       } else {
         console.warn('❌ Nenhum usuário encontrado com o userId:', paymentSession.userId);
       }

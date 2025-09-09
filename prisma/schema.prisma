@@ -155,6 +155,9 @@ model User {
   promotionCode String?
   signupSource  String?  // Adicionando o campo signupSource
   tempPassword  Boolean  @default(false) // Flag para senha temporária
+  acceptPromotionalEmails Boolean @default(true) // Aceita receber emails promocionais
+  acceptTermsOfUse Boolean @default(false) // Aceita os termos de uso
+  lastEmailSent DateTime? // Data do último email promocional enviado
 
   created_at    DateTime? @default(now())
   update_at     DateTime? @default(now())
@@ -178,6 +181,9 @@ model User {
   campaignConversions CampaignConversion[] // Relacionamento com conversões de campanhas
   paymentSessions PaymentSession[] // Relacionamento com sessões de pagamento
   affiliateSessions PaymentSession[] @relation("AffiliateSessions") // Relacionamento com sessões de pagamento como afiliado
+  emailCampaignLinks EmailCampaignLink[] // Relacionamento com links de campanhas de email
+  emailCampaignClicks EmailCampaignClick[] // Relacionamento com cliques em campanhas de email
+  emailCampaignConversions EmailCampaignConversion[] // Relacionamento com conversões de campanhas de email
 
   @@map("users")
 }
@@ -401,4 +407,110 @@ model VerificationToken {
  
   @@unique([identifier, token])
   @@map("verificationtokens")
+}
+
+model CampaignLog {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  subject         String   // Assunto da campanha
+  targetAudience  String   // Público-alvo (non-premium, premium, all)
+  totalRecipients Int      // Total de destinatários
+  emailsSent      Int      // Emails enviados com sucesso
+  emailsFailed    Int      // Emails que falharam
+  errors          String?  // Erros encontrados
+  sentAt          DateTime @default(now()) // Data de envio
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([sentAt])
+  @@index([targetAudience])
+  @@map("campaign_logs")
+}
+
+model EmailCampaign {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String   // Nome da campanha
+  subject         String   // Assunto do email
+  htmlBody        String   // Conteúdo HTML
+  textBody        String   // Conteúdo texto
+  targetAudience  String   // Público-alvo
+  status          String   @default("draft") // draft, sent, active
+  totalRecipients Int      @default(0) // Total de destinatários
+  emailsSent      Int      @default(0) // Emails enviados
+  emailsOpened    Int      @default(0) // Emails abertos
+  emailsClicked   Int      @default(0) // Emails clicados
+  conversions     Int      @default(0) // Conversões (assinaturas)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  sentAt          DateTime? // Data de envio
+
+  // Relacionamentos
+  emailLinks      EmailCampaignLink[] // Links rastreáveis da campanha
+  emailClicks     EmailCampaignClick[] // Cliques nos links
+  emailConversions EmailCampaignConversion[] // Conversões da campanha
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_campaigns")
+}
+
+model EmailCampaignLink {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  campaignId  String   @db.ObjectId // ID da campanha
+  userId      String   @db.ObjectId // ID do usuário
+  linkType    String   // "premium", "unsubscribe", "custom"
+  originalUrl String   // URL original
+  trackingId  String   @unique // ID único para rastreamento
+  clicks      Int      @default(0) // Número de cliques
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  campaign    EmailCampaign @relation(fields: [campaignId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+  clickEvents EmailCampaignClick[] // Eventos de clique
+
+  @@index([campaignId])
+  @@index([userId])
+  @@map("email_campaign_links")
+}
+
+model EmailCampaignClick {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  linkId    String   @db.ObjectId // ID do link
+  campaignId String  @db.ObjectId // ID da campanha
+  userId    String   @db.ObjectId // ID do usuário
+  ipAddress String   // IP do usuário
+  userAgent String   // User agent
+  referrer  String?  // Referrer
+  clickedAt DateTime @default(now()) // Data do clique
+
+  // Relacionamentos
+  link      EmailCampaignLink @relation(fields: [linkId], references: [id])
+  campaign  EmailCampaign     @relation(fields: [campaignId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
+
+  @@index([linkId])
+  @@index([campaignId])
+  @@index([userId])
+  @@index([clickedAt])
+  @@map("email_campaign_clicks")
+}
+
+model EmailCampaignConversion {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  campaignId  String   @db.ObjectId // ID da campanha
+  userId      String   @db.ObjectId // ID do usuário
+  planType    String   // Tipo do plano (monthly, yearly, etc.)
+  amount      Float    // Valor pago
+  paymentId   String?  // ID do pagamento
+  convertedAt DateTime @default(now()) // Data da conversão
+
+  // Relacionamentos
+  campaign    EmailCampaign @relation(fields: [campaignId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+
+  @@index([campaignId])
+  @@index([userId])
+  @@index([convertedAt])
+  @@map("email_campaign_conversions")
 }

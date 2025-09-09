@@ -87,7 +87,7 @@ export function useVideos(options: UseVideosOptions = {}) {
       // Construir query params
       const queryParams = new URLSearchParams({
         page: (options.page || 1).toString(),
-        limit: (options.limit || 12).toString()
+        limit: (options.limit || 50).toString()
       })
 
       if (options.filter) {

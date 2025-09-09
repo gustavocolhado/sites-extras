@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth.config'
 import { prisma } from '@/lib/prisma'
+import { normalizeEmail } from '@/lib/utils'
 
 // Forçar renderização dinâmica
 export const dynamic = 'force-dynamic';
@@ -22,9 +23,12 @@ export async function GET() {
       )
     }
 
+    // Normalizar email para minúsculas
+    const normalizedEmail = normalizeEmail(session.user.email)
+    
     // Buscar usuário no banco de dados
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: normalizedEmail },
       select: {
         id: true,
         email: true,
