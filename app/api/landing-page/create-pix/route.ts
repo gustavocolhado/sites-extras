@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
       await prisma.paymentSession.update({
         where: { id: paymentSession.id },
         data: { 
-          paymentId: activeProvider === 'mercadopago' ? response.id : parseInt(response.id),
+          paymentId: activeProvider === 'mercadopago' ? response.id : null, // PushinPay usa UUID, não número
           preferenceId: activeProvider === 'mercadopago' ? response.id.toString() : response.id.toUpperCase()
         },
       })

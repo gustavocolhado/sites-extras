@@ -99,11 +99,12 @@ export async function POST(request: NextRequest) {
     const pixResponse = await response.json()
 
     // Atualizar PaymentSession com o ID do PIX
+    // Para PushinPay, o ID é um UUID, então não convertemos para inteiro
     await prisma.paymentSession.update({
       where: { id: paymentSession.id },
       data: {
-        paymentId: parseInt(pixResponse.id),
-        preferenceId: pixResponse.id
+        paymentId: null, // PushinPay usa UUID, não número
+        preferenceId: pixResponse.id // Salvar o UUID como preferenceId
       }
     })
 

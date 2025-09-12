@@ -64,10 +64,7 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
     
     const paymentSession = await prisma.paymentSession.findFirst({
       where: {
-        OR: [
-          { paymentId: parseInt(pixId) },
-          { preferenceId: pixId } // Agora o preferenceId já está em maiúsculo
-        ]
+        preferenceId: pixId // PushinPay salva o UUID como preferenceId
       },
       orderBy: { updatedAt: 'desc' }, // Buscar a mais recente
       include: { user: true }
@@ -99,10 +96,7 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
     // Debug: mostrar todas as PaymentSessions que correspondem ao PIX ID
     const allMatchingSessions = await prisma.paymentSession.findMany({
       where: {
-        OR: [
-          { paymentId: parseInt(pixId) },
-          { preferenceId: pixId }
-        ]
+        preferenceId: pixId
       },
       orderBy: { updatedAt: 'desc' },
       include: { user: true }
@@ -163,9 +157,9 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
       }
     })
 
-    // Verificar se já existe um pagamento com este paymentId
+    // Verificar se já existe um pagamento com este preferenceId (UUID)
     const existingPayment = await prisma.payment.findFirst({
-      where: { paymentId: parseInt(pixId) }
+      where: { preferenceId: pixId }
     })
 
     if (!existingPayment) {
@@ -192,7 +186,8 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
             amount: paymentSession.amount,
             userEmail: paymentSession.userEmail || '',
             status: 'paid',
-            paymentId: parseInt(pixId),
+            paymentId: null, // PushinPay usa UUID, não número
+            preferenceId: pixId, // Salvar o UUID como preferenceId
             duration: getPlanDurationInDays(paymentSession.plan)
           }
         })
@@ -281,6 +276,54 @@ export async function POST(request: NextRequest) {
     // Verificar se o pagamento foi confirmado
     if (status === 'paid') {
       console.log('✅ Pagamento confirmado via webhook Pushin Pay:', normalizedPixId)
+      
+      // Verificar se o pagamento tem valor válido (maior que 0)
+      if (!value || value <= 0) {
+        console.log('⚠️ Pagamento com valor inválido, ignorando:', { value, pixId: normalizedPixId })
+        return NextResponse.json({ success: true, message: 'Valor inválido, ignorado' })
+      }
+
+      // Verificar se o pagamento tem dados do pagador (indica pagamento real)
+      if (!payer_name && !payer_national_registration && !end_to_end_id) {
+        console.log('⚠️ Pagamento sem dados do pagador, pode ser teste, ignorando:', normalizedPixId)
+        return NextResponse.json({ success: true, message: 'Pagamento sem dados do pagador, ignorado' })
+      }
+
+      // Verificar se a PaymentSession existe e está pendente
+      // Para PushinPay, o ID é um UUID, então buscamos pelo preferenceId
+      const paymentSession = await prisma.paymentSession.findFirst({
+        where: {
+          preferenceId: normalizedPixId // PushinPay salva o UUID como preferenceId
+        },
+        orderBy: { updatedAt: 'desc' }
+      })
+
+      if (!paymentSession) {
+        console.log('⚠️ PaymentSession não encontrada para o PIX, ignorando:', normalizedPixId)
+        return NextResponse.json({ success: true, message: 'PaymentSession não encontrada, ignorado' })
+      }
+
+      // Verificar se a PaymentSession foi criada há pelo menos 30 segundos (evita confirmações imediatas)
+      const sessionAge = Date.now() - paymentSession.createdAt.getTime()
+      if (sessionAge < 30000) { // 30 segundos
+        console.log('⚠️ PaymentSession muito recente, pode ser confirmação prematura, ignorando:', {
+          pixId: normalizedPixId,
+          sessionAge: sessionAge,
+          createdAt: paymentSession.createdAt
+        })
+        return NextResponse.json({ success: true, message: 'PaymentSession muito recente, ignorado' })
+      }
+
+      // Verificar se o valor do webhook corresponde ao valor da PaymentSession
+      const expectedValue = Math.round(paymentSession.amount * 100) // Converter para centavos
+      if (Math.abs(value - expectedValue) > 1) { // Tolerância de 1 centavo
+        console.log('⚠️ Valor do webhook não corresponde à PaymentSession, ignorando:', {
+          webhookValue: value,
+          expectedValue: expectedValue,
+          pixId: normalizedPixId
+        })
+        return NextResponse.json({ success: true, message: 'Valor não corresponde, ignorado' })
+      }
       
       // Ativar acesso premium
       const activated = await activatePremiumAccessViaWebhook(normalizedPixId, {

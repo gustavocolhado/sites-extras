@@ -296,39 +296,45 @@ export default function LandingPage() {
     }
   }, [showPixPayment, timeLeft]);
 
-  // Polling automático para verificar status do pagamento
+  // Polling automático para verificar status do pagamento (menos agressivo)
   useEffect(() => {
     if (showPixPayment && pixData && !paymentConfirmed) {
-      const pollInterval = setInterval(async () => {
-        try {
-          const response = await fetch('/api/landing-page/check-payment', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              pixId: pixData.id
-            }),
-          });
+      // Aguardar 60 segundos antes de começar o polling (dar tempo para o usuário pagar)
+      const initialDelay = setTimeout(() => {
+        const pollInterval = setInterval(async () => {
+          try {
+            const response = await fetch('/api/landing-page/check-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                pixId: pixData.id
+              }),
+            });
 
-          if (response.ok) {
-            const statusData = await response.json();
-            if (statusData.paid && !paymentConfirmed) {
-              console.log('✅ Pagamento confirmado automaticamente!');
-              // Pagamento confirmado! Mostrar formulário de senha
-              setPaymentConfirmed(true);
-              setShowPixPayment(false);
-              setShowPasswordForm(true);
-              clearInterval(pollInterval);
+            if (response.ok) {
+              const statusData = await response.json();
+              if (statusData.paid && !paymentConfirmed) {
+                console.log('✅ Pagamento confirmado automaticamente!');
+                // Pagamento confirmado! Mostrar formulário de senha
+                setPaymentConfirmed(true);
+                setShowPixPayment(false);
+                setShowPasswordForm(true);
+                clearInterval(pollInterval);
+              }
             }
+          } catch (error) {
+            console.error('Erro ao verificar status automaticamente:', error);
           }
-        } catch (error) {
-          console.error('Erro ao verificar status automaticamente:', error);
-        }
-      }, 5000); // Verificar a cada 5 segundos
+        }, 10000); // Verificar a cada 10 segundos (menos agressivo)
 
-      // Limpar o intervalo quando o componente for desmontado ou quando o pagamento for confirmado
-      return () => clearInterval(pollInterval);
+        // Limpar o intervalo quando o componente for desmontado ou quando o pagamento for confirmado
+        return () => clearInterval(pollInterval);
+      }, 60000); // Aguardar 60 segundos antes de começar
+
+      // Limpar o timeout quando o componente for desmontado
+      return () => clearTimeout(initialDelay);
     }
   }, [showPixPayment, pixData, paymentConfirmed]);
 

@@ -34,7 +34,7 @@ export function useVideoPreload({
         const handleLoadedMetadata = () => {
           clearTimeout(timeout)
           video.remove()
-          setPreloadedVideos(prev => new Set([...prev, url]))
+          setPreloadedVideos(prev => new Set([...Array.from(prev), url]))
           resolve()
         }
 

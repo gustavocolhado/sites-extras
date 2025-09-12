@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
 
     // Limpar cache antigo periodicamente
     if (videoCache.size > 100) {
-      for (const [key, value] of videoCache.entries()) {
+      const entries = Array.from(videoCache.entries())
+      for (const [key, value] of entries) {
         if ((now - value.timestamp) > CACHE_DURATION) {
           videoCache.delete(key)
         }
