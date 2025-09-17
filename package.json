@@ -15,6 +15,7 @@
   "dependencies": {
     "@aws-sdk/client-ses": "^3.883.0",
     "@next-auth/prisma-adapter": "^1.0.7",
+    "@sendinblue/client": "^3.3.1",
     "@stripe/stripe-js": "^4.8.0",
     "@types/bcrypt": "^6.0.0",
     "@types/nodemailer": "^6.4.17",

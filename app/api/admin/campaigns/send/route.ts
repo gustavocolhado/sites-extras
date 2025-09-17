@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendBulkEmails, EmailTemplate, EmailRecipient } from '@/lib/ses'
+import { sendBulkEmails, EmailTemplate, EmailRecipient } from '@/lib/brevo'
 import crypto from 'crypto'
 
 // Função para gerar token de unsubscribe único
