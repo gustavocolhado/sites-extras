@@ -26,22 +26,31 @@ export default function VideoJSPlayer({
   muted = false, 
   loop = false,
   controls = true,
-  preload = 'metadata'
+  preload = 'auto'
 }: PlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const onLoadCalledRef = useRef<boolean>(false)
+  const lastVideoUrlRef = useRef<string>('')
+  const [isLoading, setIsLoading] = useState(false) // Mantido para lógica interna, mas não usado no UI
   const [error, setError] = useState<string | null>(null)
 
   // Função para obter URL do vídeo
   const getVideoUrl = (url: string) => {
     if (!url) {
       console.warn('🎬 Player: URL do vídeo está vazia')
-      // Fallback para vídeo de teste
-      return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+      return ''
     }
     
     console.log('🎬 Player: URL original:', url)
+    
+    // Validar se a URL é válida
+    try {
+      new URL(url)
+      console.log('✅ Player: URL válida detectada')
+    } catch (e) {
+      console.warn('⚠️ Player: URL inválida, tentando corrigir:', url)
+    }
     
     // Corrigir URL com duplicação de domínio
     let correctedUrl = url
@@ -139,6 +148,18 @@ export default function VideoJSPlayer({
     }
   }
 
+
+  // Função para chamar onLoad apenas uma vez
+  const callOnLoadOnce = () => {
+    if (!onLoadCalledRef.current) {
+      onLoadCalledRef.current = true
+      console.log('🎬 Player: Chamando onLoad (primeira vez)')
+      onLoad?.()
+    } else {
+      console.log('🎬 Player: onLoad já foi chamado, ignorando')
+    }
+  }
+
   // Inicializar o player HLS
   useEffect(() => {
     const video = videoRef.current
@@ -153,37 +174,130 @@ export default function VideoJSPlayer({
       return
     }
 
+    // Verificar se é a mesma URL (evitar re-inicialização desnecessária)
+    if (lastVideoUrlRef.current === videoUrl) {
+      console.log('🎬 Player: Mesma URL, evitando re-inicialização')
+      return
+    }
+    
+    // Reset flag de onLoad para nova inicialização
+    onLoadCalledRef.current = false
+    lastVideoUrlRef.current = videoUrl
+    console.log('🎬 Player: Resetando flag onLoad para nova inicialização')
+
     const finalVideoUrl = getVideoUrl(videoUrl)
     const finalPosterUrl = poster ? getPosterUrl(poster) : ''
     const videoType = getVideoType(finalVideoUrl)
+    
+    // Detectar iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    if (isIOS) {
+      console.log('🍎 Player: iOS detectado, carregando vídeo original')
+      console.log('🍎 Player: iOS Info:', {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        vendor: navigator.vendor,
+        finalVideoUrl,
+        videoType,
+        isHTTPS: finalVideoUrl.startsWith('https://'),
+        hasMediaURL: !!process.env.NEXT_PUBLIC_MEDIA_URL,
+        currentDomain: window.location.hostname,
+        isSameDomain: finalVideoUrl.includes(window.location.hostname)
+      })
+      
+      // Teste de conectividade para iOS
+      if (finalVideoUrl.startsWith('http')) {
+        console.log('🍎 Player: Testando conectividade com a URL do vídeo...')
+        fetch(finalVideoUrl, { method: 'HEAD' })
+          .then(response => {
+            console.log('🍎 Player: Teste de conectividade:', {
+              status: response.status,
+              statusText: response.statusText,
+              headers: Object.fromEntries(response.headers.entries())
+            })
+          })
+          .catch(error => {
+            console.error('🍎 Player: Erro no teste de conectividade:', error)
+          })
+      }
+    }
 
-    // Timeout para garantir que o loading não fique preso
-    const loadingTimeout = setTimeout(() => {
-      console.log('⏰ Player: Timeout de loading, removendo overlay')
-      setIsLoading(false)
-    }, 10000) // 10 segundos
+    // Timeout removido - não há mais loading visual
 
     console.log('🎬 Player: Inicializando com:', {
+      originalUrl: videoUrl,
       finalVideoUrl,
       finalPosterUrl,
       videoType,
       autoPlay,
       muted,
-      controls
+      controls,
+      isIOS,
+      userAgent: navigator.userAgent
     })
 
+    // Detectar qualidade da conexão e ajustar preload
+    const connection = (navigator as any).connection
+    let optimizedPreload = preload
+    
+    if (connection) {
+      console.log('🌐 Player: Qualidade da conexão detectada:', connection.effectiveType)
+      if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+        optimizedPreload = 'metadata'
+        console.log('🐌 Player: Conexão lenta detectada, usando preload metadata')
+      } else if (connection.effectiveType === '3g') {
+        optimizedPreload = 'metadata'
+        console.log('📱 Player: Conexão 3G detectada, usando preload metadata')
+      } else {
+        optimizedPreload = 'auto'
+        console.log('🚀 Player: Conexão rápida detectada, usando preload auto')
+      }
+    }
+
     // Configurar atributos do vídeo com otimizações
+    console.log('🎬 Player: Configurando atributos do vídeo:', {
+      poster: finalPosterUrl,
+      autoplay: autoPlay,
+      muted: muted,
+      loop: loop,
+      controls: controls,
+      preload: optimizedPreload
+    })
+    
     video.poster = finalPosterUrl
     video.autoplay = autoPlay
     video.muted = muted
     video.loop = loop
     video.controls = controls
-    video.preload = preload
+    video.preload = optimizedPreload
     
-    // Otimizações de performance
+    // Sempre começar sem loading visual
+    setIsLoading(false)
+    console.log('🎬 Player: Iniciando sem loading visual - vídeo carrega direto')
+    
+    // Otimizações de performance e compatibilidade iOS
     video.playsInline = true
     video.disablePictureInPicture = false
-    video.crossOrigin = 'anonymous'
+    
+    // Configurar CORS baseado na URL
+    if (finalVideoUrl.startsWith('https://') && !finalVideoUrl.includes(window.location.hostname)) {
+      video.crossOrigin = 'anonymous'
+      console.log('🍎 Player: Configurando CORS para URL externa')
+    } else {
+      video.crossOrigin = null
+      console.log('🍎 Player: Removendo CORS para URL local')
+    }
+    
+    // Configurações específicas para iOS/Safari
+    video.setAttribute('webkit-playsinline', 'true')
+    video.setAttribute('playsinline', 'true')
+    video.setAttribute('x-webkit-airplay', 'allow')
+    
+    // Para iOS, usar preload mais conservador se conexão for lenta
+    if (isIOS && connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g')) {
+      video.preload = 'none'
+      console.log('🍎 Player: iOS detectado com conexão lenta, usando preload none')
+    }
     
     // Configurar qualidade adaptativa se disponível
     if ('requestVideoFrameCallback' in video) {
@@ -206,7 +320,7 @@ export default function VideoJSPlayer({
     if (videoType === 'iframe') {
       console.log('🎬 Player: Usando iframe para embed')
       setIsLoading(false)
-      onLoad?.()
+      callOnLoadOnce()
       return
     }
     
@@ -217,6 +331,7 @@ export default function VideoJSPlayer({
       // Verificar se o navegador suporta HLS nativamente
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         console.log('🎬 Player: Usando HLS nativo do navegador')
+        console.log('🎬 Player: Definindo src do vídeo:', finalVideoUrl)
         video.src = finalVideoUrl
       } else if (Hls.isSupported()) {
         console.log('🎬 Player: Usando hls.js')
@@ -238,7 +353,7 @@ export default function VideoJSPlayer({
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           console.log('✅ Player: Manifesto HLS carregado')
           setIsLoading(false)
-          onLoad?.()
+          callOnLoadOnce()
         })
 
         hls.on(Hls.Events.ERROR, (event, data) => {
@@ -282,39 +397,68 @@ export default function VideoJSPlayer({
     } else {
       // Vídeo normal (MP4, WebM, etc.)
       console.log('🎬 Player: Usando vídeo normal:', videoType)
+      
+      // Verificar suporte de formato no iOS
+      if (isIOS) {
+        const canPlay = video.canPlayType(videoType)
+        console.log('🍎 Player: Suporte de formato no iOS:', {
+          videoType,
+          canPlay,
+          supportLevel: canPlay === 'probably' ? 'Excelente' : canPlay === 'maybe' ? 'Possível' : 'Não suportado'
+        })
+        
+        if (!canPlay) {
+          console.error('🍎 Player: Formato não suportado no iOS:', videoType)
+        }
+      }
+      
+      console.log('🎬 Player: Definindo src do vídeo:', finalVideoUrl)
       video.src = finalVideoUrl
     }
 
          // Eventos do vídeo
      const handleLoadStart = () => {
-       console.log('🔄 Player: Iniciando carregamento')
+       console.log('🔄 Player: Iniciando carregamento', {
+         videoSrc: video.src,
+         videoCurrentSrc: video.currentSrc,
+         videoNetworkState: video.networkState,
+         videoReadyState: video.readyState
+       })
        setIsLoading(true)
        setError(null)
+       
+       // Para iOS, remover loading mais rapidamente
+       if (isIOS) {
+         setTimeout(() => {
+           if (video.readyState >= 1) { // HAVE_METADATA
+             console.log('🍎 Player: iOS - Removendo loading após loadstart')
+             setIsLoading(false)
+           }
+         }, 500) // 500ms após loadstart
+       }
      }
 
      const handleLoadedMetadata = () => {
        console.log('✅ Player: Metadados carregados')
-       clearTimeout(loadingTimeout)
        setIsLoading(false)
-       onLoad?.()
+       callOnLoadOnce()
      }
 
      const handleCanPlay = () => {
        console.log('✅ Player: Vídeo pode ser reproduzido')
-       clearTimeout(loadingTimeout)
        setIsLoading(false)
+       callOnLoadOnce() // Chamar onLoad também aqui para garantir
      }
 
      const handleCanPlayThrough = () => {
        console.log('✅ Player: Vídeo pode ser reproduzido completamente')
-       clearTimeout(loadingTimeout)
        setIsLoading(false)
      }
 
     const handleLoadedData = () => {
       console.log('✅ Player: Dados carregados')
-      clearTimeout(loadingTimeout)
       setIsLoading(false)
+      callOnLoadOnce() // Chamar onLoad também aqui
     }
 
     const handleProgress = () => {
@@ -324,9 +468,19 @@ export default function VideoJSPlayer({
         const currentTime = video.currentTime
         const duration = video.duration
         
+        // Calcular percentual carregado
+        const bufferedPercent = (bufferedEnd / duration) * 100
+        
+        // Se temos mais de 50% do vídeo carregado, reduzir prioridade
+        if (bufferedPercent > 50) {
+          video.preload = 'metadata'
+          console.log('📊 Player: Vídeo 50%+ carregado, reduzindo preload para metadata')
+        }
+        
         // Se temos mais de 30 segundos carregados, reduzir prioridade
         if (bufferedEnd - currentTime > 30) {
           video.preload = 'metadata'
+          console.log('📊 Player: 30+ segundos carregados, reduzindo preload para metadata')
         }
       }
     }
@@ -345,38 +499,60 @@ export default function VideoJSPlayer({
       console.error('❌ Player: Erro no vídeo:', e)
       const videoElement = e.target as HTMLVideoElement
       const error = videoElement.error
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      
+      // Log detalhado do erro
+      console.error('❌ Player: Detalhes do erro:', {
+        errorCode: error?.code,
+        errorMessage: error?.message,
+        videoSrc: videoElement.src,
+        videoCurrentSrc: videoElement.currentSrc,
+        videoNetworkState: videoElement.networkState,
+        videoReadyState: videoElement.readyState,
+        isIOS,
+        userAgent: navigator.userAgent,
+        isHTTPS: videoElement.src.startsWith('https://'),
+        hasCORS: videoElement.crossOrigin,
+        videoType: videoElement.getAttribute('type') || 'unknown'
+      })
+      
+      // Logs específicos para iOS
+      if (isIOS) {
+        console.error('🍎 Player: Erro específico do iOS:', {
+          errorCode: error?.code,
+          possibleCauses: {
+            cors: 'Problema de CORS - vídeo de domínio diferente',
+            https: 'Problema de HTTPS - vídeo não é HTTPS',
+            format: 'Formato não suportado no iOS',
+            network: 'Problema de rede ou URL inválida'
+          },
+          videoSrc: videoElement.src,
+          currentDomain: window.location.hostname
+        })
+      }
       
       let errorMessage = 'Erro ao carregar o vídeo'
       if (error) {
         switch (error.code) {
           case 1:
-            errorMessage = 'Erro de rede ao carregar o vídeo'
+            errorMessage = isIOS ? 'Erro de rede. Verifique sua conexão e tente novamente.' : 'Erro de rede ao carregar o vídeo'
             break
           case 2:
-            errorMessage = 'Erro ao decodificar o vídeo'
+            errorMessage = isIOS ? 'Formato de vídeo não suportado no iOS. Tente em outro dispositivo.' : 'Erro ao decodificar o vídeo'
             break
           case 3:
-            errorMessage = 'Formato de vídeo não suportado'
+            errorMessage = isIOS ? 'Formato não suportado no iPhone/iPad' : 'Formato de vídeo não suportado'
             break
           case 4:
-            errorMessage = 'Vídeo não pode ser reproduzido'
+            errorMessage = isIOS ? 'Vídeo não pode ser reproduzido no iOS' : 'Vídeo não pode ser reproduzido'
             break
           default:
-            errorMessage = error.message || 'Erro ao carregar o vídeo'
+            errorMessage = error.message || (isIOS ? 'Erro no iOS. Tente atualizar o Safari.' : 'Erro ao carregar o vídeo')
         }
       }
       
-             // Se a URL original tem duplicação de domínio, tentar com fallback
-       if (videoUrl.includes('https://') && videoUrl.split('https://').length > 2) {
-         console.log('🔄 Player: Tentando com vídeo de fallback devido a URL malformada')
-         const fallbackUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
-         video.src = fallbackUrl
-         setError(null)
-         setIsLoading(true)
-         return
-       }
+      // Sem fallback - sempre usar o vídeo original
        
-       clearTimeout(loadingTimeout)
        setError(errorMessage)
        onError?.(errorMessage)
        setIsLoading(false)
@@ -395,7 +571,6 @@ export default function VideoJSPlayer({
          // Cleanup
      return () => {
        console.log('🧹 Player: Limpando eventos e HLS')
-       clearTimeout(loadingTimeout)
        video.removeEventListener('loadstart', handleLoadStart)
        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
        video.removeEventListener('loadeddata', handleLoadedData)
@@ -442,15 +617,7 @@ export default function VideoJSPlayer({
 
   return (
     <div className="relative bg-black aspect-video rounded-lg overflow-hidden">
-      {/* Loading Overlay */}
-      {isLoading && !shouldUseIframe && (
-        <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-10">
-          <div className="text-white text-center">
-            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <div className="text-sm">Carregando vídeo...</div>
-          </div>
-        </div>
-      )}
+      {/* Loading Overlay removido - vídeo carrega direto */}
 
       {/* Iframe para embeds */}
       {shouldUseIframe ? (
@@ -469,6 +636,9 @@ export default function VideoJSPlayer({
           className="w-full h-full"
           playsInline
           webkit-playsinline="true"
+          x-webkit-airplay="allow"
+          preload="auto"
+          controls
         />
       )}
     </div>

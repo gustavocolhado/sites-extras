@@ -11,7 +11,7 @@ interface UseVideoPreloadOptions {
 export function useVideoPreload({
   videoUrls,
   maxPreload = 2,
-  preloadDelay = 2000
+  preloadDelay = 5000
 }: UseVideoPreloadOptions) {
   const [preloadedVideos, setPreloadedVideos] = useState<Set<string>>(new Set())
   const [isPreloading, setIsPreloading] = useState(false)

@@ -85,8 +85,8 @@ export default function VideoPage() {
   // Hook para preload inteligente de vídeos relacionados
   const { isVideoPreloaded, preloadProgress } = useVideoPreload({
     videoUrls: relatedVideos.map(v => v.videoUrl).filter((url): url is string => Boolean(url)),
-    maxPreload: 3,
-    preloadDelay: 2000
+    maxPreload: 2,
+    preloadDelay: 8000
   })
 
   // Verificar se o vídeo é premium e o usuário não é premium
@@ -498,6 +498,7 @@ export default function VideoPage() {
                 autoPlay={false}
                 muted={false}
                 loop={false}
+                preload="auto"
               />
 
               {/* Banner Desktop - Abaixo do Vídeo */}
@@ -728,11 +729,13 @@ export default function VideoPage() {
         </div>
       </main>
 
-      {/* Indicador de Preload */}
-      <VideoPreloadIndicator 
-        progress={preloadProgress} 
-        isPreloading={preloadProgress < 1 && relatedVideos.length > 0}
-      />
+      {/* Indicador de Preload - só mostra se há vídeos relacionados e preload real */}
+      {relatedVideos.length > 0 && (
+        <VideoPreloadIndicator 
+          progress={preloadProgress} 
+          isPreloading={preloadProgress < 1 && preloadProgress > 0}
+        />
+      )}
         </Layout>
       </>
     )

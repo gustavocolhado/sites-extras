@@ -16,11 +16,12 @@ export default function VideoPreloadIndicator({
   const [showIndicator, setShowIndicator] = useState(false)
 
   useEffect(() => {
-    if (isPreloading && progress < 1) {
+    // Só mostrar se está preloadando E há progresso real (não 0%)
+    if (isPreloading && progress > 0 && progress < 1) {
       setShowIndicator(true)
     } else if (progress >= 1) {
-      // Esconder após 2 segundos quando completo
-      const timer = window.setTimeout(() => setShowIndicator(false), 2000)
+      // Esconder após 1 segundo quando completo
+      const timer = window.setTimeout(() => setShowIndicator(false), 1000)
       return () => clearTimeout(timer)
     } else {
       setShowIndicator(false)

@@ -207,6 +207,7 @@ async function handleStripeSubscription(
 
     // Garantir URLs válidas
     const baseUrl = process.env.HOST_URL
+
     const successUrl = ensureValidUrl(baseUrl, `/premium/success?session_id={CHECKOUT_SESSION_ID}&paymentSessionId=${paymentSessionId}`)
     const cancelUrl = ensureValidUrl(baseUrl, `/premium/cancel`)
     
@@ -270,6 +271,7 @@ async function handleMercadoPagoSubscription(
   try {
     // Garantir URLs válidas
     const baseUrl = process.env.HOST_URL
+    
     const isCampaignPlan = planId.startsWith('campaign-')
     
     const successUrl = ensureValidUrl(baseUrl, 

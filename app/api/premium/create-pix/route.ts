@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       
       if (process.env.NODE_ENV === 'production') {
         const baseUrl = process.env.HOST_URL || 'https://cornosbrasil.com'
+        
         webhookUrl = `${baseUrl}/api/mercado-pago/webhook`
         console.log('🔗 Webhook configurado para PIX Premium (produção):', webhookUrl)
       } else {
@@ -204,6 +205,7 @@ export async function POST(request: NextRequest) {
       
       if (process.env.NODE_ENV === 'production') {
         const baseUrl = process.env.HOST_URL || 'https://cornosbrasil.com'
+        
         webhookUrl = `${baseUrl}/api/pushin-pay/webhook`
         console.log('🔗 Webhook configurado para PIX Premium (produção):', webhookUrl)
       } else {
