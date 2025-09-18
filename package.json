@@ -19,6 +19,7 @@
     "@stripe/stripe-js": "^4.8.0",
     "@types/bcrypt": "^6.0.0",
     "@types/nodemailer": "^6.4.17",
+    "@videojs/themes": "^1.0.1",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "clsx": "^2.1.1",
@@ -36,7 +37,8 @@
     "sharp": "^0.34.3",
     "sitemap": "^8.0.0",
     "stripe": "17.3.1",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "video.js": "^8.23.4"
   },
   "devDependencies": {
     "@types/node": "^20",

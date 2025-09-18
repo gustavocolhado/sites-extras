@@ -296,10 +296,10 @@ export default function LandingPage() {
     }
   }, [showPixPayment, timeLeft]);
 
-  // Polling automático para verificar status do pagamento (menos agressivo)
+  // Polling automático para verificar status do pagamento (respeitando limite da PushinPay)
   useEffect(() => {
     if (showPixPayment && pixData && !paymentConfirmed) {
-      // Aguardar 60 segundos antes de começar o polling (dar tempo para o usuário pagar)
+      // Aguardar 30 segundos antes de começar o polling (tempo suficiente para o usuário pagar)
       const initialDelay = setTimeout(() => {
         const pollInterval = setInterval(async () => {
           try {
@@ -327,11 +327,11 @@ export default function LandingPage() {
           } catch (error) {
             console.error('Erro ao verificar status automaticamente:', error);
           }
-        }, 10000); // Verificar a cada 10 segundos (menos agressivo)
+        }, 60000); // Verificar a cada 60 segundos (respeitando limite da PushinPay)
 
         // Limpar o intervalo quando o componente for desmontado ou quando o pagamento for confirmado
         return () => clearInterval(pollInterval);
-      }, 60000); // Aguardar 60 segundos antes de começar
+      }, 30000); // Aguardar 30 segundos antes de começar
 
       // Limpar o timeout quando o componente for desmontado
       return () => clearTimeout(initialDelay);
@@ -347,6 +347,40 @@ export default function LandingPage() {
       console.log('✅ QR code base64 já disponível, tamanho:', pixData.qr_code_base64.length)
     }
   }, [pixData]);
+
+  // Verificação imediata quando PIX é criado (para casos onde webhook já processou)
+  useEffect(() => {
+    if (pixData && showPixPayment && !paymentConfirmed) {
+      // Aguardar 10 segundos e fazer uma verificação imediata
+      const immediateCheck = setTimeout(async () => {
+        try {
+          const response = await fetch('/api/landing-page/check-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              pixId: pixData.id
+            }),
+          });
+
+          if (response.ok) {
+            const statusData = await response.json();
+            if (statusData.paid && !paymentConfirmed) {
+              console.log('✅ Pagamento já confirmado via webhook!');
+              setPaymentConfirmed(true);
+              setShowPixPayment(false);
+              setShowPasswordForm(true);
+            }
+          }
+        } catch (error) {
+          console.error('Erro na verificação imediata:', error);
+        }
+      }, 10000); // Aguardar 10 segundos
+
+      return () => clearTimeout(immediateCheck);
+    }
+  }, [pixData, showPixPayment, paymentConfirmed]);
 
   // Log quando QR code for exibido
   useEffect(() => {

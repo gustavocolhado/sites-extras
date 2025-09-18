@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { prisma } from './prisma'
 
 // Configuração da Brevo via API REST
 const BREVO_API_BASE = 'https://api.brevo.com/v3'
@@ -81,7 +82,8 @@ export async function sendSingleEmail(
   subject: string,
   htmlBody: string,
   textBody: string,
-  recipientName?: string
+  recipientName?: string,
+  campaignId?: string
 ): Promise<boolean> {
   try {
     const transporter = createBrevoTransporter()
@@ -100,7 +102,7 @@ export async function sendSingleEmail(
         // Headers para melhorar deliverability
         'List-Unsubscribe': `<${process.env.NEXTAUTH_URL}/unsubscribe?email=${to}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        'X-Campaign-ID': campaignId,
+        'X-Campaign-ID': campaignId || 'default-campaign',
         'X-Sender-ID': 'cornos-brasil-marketing',
         'Return-Path': BREVO_CONFIG.FROM_EMAIL,
         'Reply-To': 'suporte@cornosbrasil.com',
@@ -222,7 +224,8 @@ export async function sendBulkEmails(
           template.subject,
           htmlBody,
           textBody,
-          recipient.name
+          recipient.name,
+          campaignId
         )
 
         // Se SMTP falhar, tentar API

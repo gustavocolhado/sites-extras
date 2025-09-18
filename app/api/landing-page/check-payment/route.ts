@@ -285,9 +285,9 @@ export async function POST(request: NextRequest) {
     // Verificar se o pagamento foi aprovado
     const isPaid = payment.status === 'approved' || payment.status === 'paid'
     
-    // Verificar se o pagamento foi criado há pelo menos 30 segundos (evita confirmações prematuras)
+    // Verificar se o pagamento foi criado há pelo menos 10 segundos (evita confirmações prematuras)
     const paymentAge = Date.now() - payment.transactionDate.getTime()
-    const isRecentPayment = paymentAge < 30000 // 30 segundos
+    const isRecentPayment = paymentAge < 10000 // 10 segundos
     
     console.log('🔍 Status do pagamento:', {
       status: payment.status,

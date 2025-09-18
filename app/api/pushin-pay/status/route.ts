@@ -5,6 +5,16 @@ interface CheckPixStatusRequest {
   pixId: string
 }
 
+// Cache para evitar consultas excessivas à API da Pushin Pay
+const statusCache = new Map<string, {
+  data: any;
+  timestamp: number;
+  status: string;
+}>()
+
+// Limite de 1 minuto entre consultas (60 segundos)
+const CACHE_DURATION = 60 * 1000 // 60 segundos em millisegundos
+
 export async function POST(request: NextRequest) {
   try {
     const body: CheckPixStatusRequest = await request.json()
@@ -18,6 +28,37 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔍 Consultando status PIX PushinPay:', pixId)
+
+    // Verificar se já temos dados em cache válidos
+    const cachedData = statusCache.get(pixId)
+    const now = Date.now()
+    
+    if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+      console.log('📋 Retornando dados do cache (evitando consulta excessiva à API):', {
+        pixId,
+        status: cachedData.status,
+        cacheAge: Math.round((now - cachedData.timestamp) / 1000) + 's'
+      })
+      
+      return NextResponse.json({
+        id: cachedData.data.id,
+        status: cachedData.data.status,
+        value: cachedData.data.value,
+        qr_code: cachedData.data.qr_code,
+        qr_code_base64: cachedData.data.qr_code_base64,
+        expires_at: cachedData.data.expires_at,
+        created_at: cachedData.data.created_at,
+        paid_at: cachedData.data.paid_at,
+        end_to_end_id: cachedData.data.end_to_end_id,
+        payer_name: cachedData.data.payer_name,
+        payer_national_registration: cachedData.data.payer_national_registration,
+        cached: true,
+        cacheAge: Math.round((now - cachedData.timestamp) / 1000)
+      })
+    }
+
+    // Se não há cache válido, fazer consulta à API
+    console.log('📡 Fazendo consulta à API PushinPay (cache expirado ou inexistente)')
 
     // Buscar configurações de pagamento
     const paymentSettings = await getPaymentSettings()
@@ -93,6 +134,21 @@ export async function POST(request: NextRequest) {
       value: pixData.value
     })
 
+    // Salvar no cache para evitar consultas excessivas
+    statusCache.set(pixId, {
+      data: pixData,
+      timestamp: now,
+      status: pixData.status
+    })
+
+    // Limpar cache antigo (manter apenas os últimos 100 itens)
+    if (statusCache.size > 100) {
+      const oldestKey = statusCache.keys().next().value
+      if (oldestKey) {
+        statusCache.delete(oldestKey)
+      }
+    }
+
     return NextResponse.json({
       id: pixData.id,
       status: pixData.status,
@@ -104,7 +160,8 @@ export async function POST(request: NextRequest) {
       paid_at: pixData.paid_at,
       end_to_end_id: pixData.end_to_end_id,
       payer_name: pixData.payer_name,
-      payer_national_registration: pixData.payer_national_registration
+      payer_national_registration: pixData.payer_national_registration,
+      cached: false
     })
 
   } catch (error) {

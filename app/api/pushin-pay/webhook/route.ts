@@ -227,29 +227,29 @@ export async function POST(request: NextRequest) {
     
     let body: WebhookPayload
     
-    // Try to parse as JSON
-    try {
-      body = JSON.parse(rawBody)
-    } catch (parseError) {
-      console.error('❌ Failed to parse webhook body as JSON:', parseError)
-      console.error('❌ Raw body that failed to parse:', rawBody)
-      
-      // Try to handle different content types
-      const contentType = request.headers.get('content-type')
-      console.log('📋 Content-Type header:', contentType)
-      
-      // If it's form data, try to parse it
-      if (contentType?.includes('application/x-www-form-urlencoded')) {
-        const urlParams = new URLSearchParams(rawBody)
-        body = {
-          id: urlParams.get('id') || '',
-          status: urlParams.get('status') || '',
-          value: parseInt(urlParams.get('value') || '0'),
-          end_to_end_id: urlParams.get('end_to_end_id') || undefined,
-          payer_name: urlParams.get('payer_name') || undefined,
-          payer_national_registration: urlParams.get('payer_national_registration') || undefined,
-        }
-      } else {
+    // Check content type first to determine parsing method
+    const contentType = request.headers.get('content-type')
+    console.log('📋 Content-Type header:', contentType)
+    
+    // If it's form data, parse it directly
+    if (contentType?.includes('application/x-www-form-urlencoded')) {
+      const urlParams = new URLSearchParams(rawBody)
+      body = {
+        id: urlParams.get('id') || '',
+        status: urlParams.get('status') || '',
+        value: parseInt(urlParams.get('value') || '0'),
+        end_to_end_id: urlParams.get('end_to_end_id') || undefined,
+        payer_name: urlParams.get('payer_name') || undefined,
+        payer_national_registration: urlParams.get('payer_national_registration') || undefined,
+      }
+    } else {
+      // Try to parse as JSON for other content types
+      try {
+        body = JSON.parse(rawBody)
+      } catch (parseError) {
+        console.error('❌ Failed to parse webhook body as JSON:', parseError)
+        console.error('❌ Raw body that failed to parse:', rawBody)
+        
         // Return error for unparseable data
         return NextResponse.json(
           { error: 'Invalid webhook payload format' },
