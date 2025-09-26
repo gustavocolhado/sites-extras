@@ -1,5 +1,5 @@
 import { headers } from 'next/headers'
-import { Metadata } from 'next'
+import { Metadata, Viewport } from 'next'
 import { DomainConfig, getDomainConfig } from '@/config/domains'
 
 export function getServerDomainConfig(): DomainConfig {
@@ -77,6 +77,13 @@ export function generateDomainMetadata(domainConfig: DomainConfig): Metadata {
       apple: domainConfig.favicon,
     },
     manifest: '/manifest.json',
+  }
+}
+
+export function generateViewport(domainConfig: DomainConfig): Viewport {
+  return {
     themeColor: domainConfig.primaryColor,
+    width: 'device-width',
+    initialScale: 1,
   }
 }

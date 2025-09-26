@@ -15,11 +15,19 @@ export async function POST(request: NextRequest) {
       utm_medium,
       utm_campaign,
       utm_term,
-      utm_content
+      utm_content,
+      clickId,
+      goalId,
+      value,
+      price,
+      leadCode,
+      trackingId,
+      pageUrl,
+      ipAddress
     } = body
 
     // Validar dados obrigatórios
-    if (!source || !campaign || !timestamp) {
+    if (!source || !campaign) {
       return NextResponse.json(
         { error: 'Dados obrigatórios não fornecidos' },
         { status: 400 }
@@ -31,7 +39,7 @@ export async function POST(request: NextRequest) {
       data: {
         source,
         campaign,
-        timestamp: new Date(timestamp),
+        timestamp: timestamp ? new Date(timestamp) : new Date(),
         userAgent: userAgent || '',
         referrer: referrer || '',
         utm_source: utm_source || null,
@@ -39,10 +47,15 @@ export async function POST(request: NextRequest) {
         utm_campaign: utm_campaign || null,
         utm_term: utm_term || null,
         utm_content: utm_content || null,
-        ipAddress: request.headers.get('x-forwarded-for') || 
+        ipAddress: ipAddress || request.headers.get('x-forwarded-for') || 
                    request.headers.get('x-real-ip') || 
                    'unknown',
-        pageUrl: request.headers.get('referer') || 'unknown'
+        pageUrl: pageUrl || request.headers.get('referer') || 'unknown',
+        clickId: clickId || null,
+        goalId: goalId || null,
+        value: value || null,
+        price: price || null,
+        leadCode: leadCode || null
       }
     })
 

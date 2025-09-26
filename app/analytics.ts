@@ -1,6 +1,18 @@
 // Google Analytics Configuration
 export const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-XXXXXXXXXX'
 
+// Google Analytics 4 Measurement ID
+export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || GA_TRACKING_ID
+
+// Analytics Configuration
+export const ANALYTICS_CONFIG = {
+  enabled: process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_ANALYTICS_DEV === 'true',
+  debug: process.env.NEXT_PUBLIC_ANALYTICS_DEBUG === 'true',
+  anonymizeIp: true,
+  cookieFlags: 'SameSite=None;Secure',
+  sendPageView: true
+}
+
 // Google Search Console Verification
 export const GOOGLE_SITE_VERIFICATION = process.env.GOOGLE_SITE_VERIFICATION || 'your-verification-code'
 

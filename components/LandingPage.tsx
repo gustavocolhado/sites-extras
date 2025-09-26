@@ -8,6 +8,7 @@ import { FaFire, FaPlay, FaEye, FaHeart, FaClock, FaUsers, FaVideo, FaSearch, Fa
 import Image from 'next/image';
 import Container from '@/components/Container';
 import QRCode from 'qrcode';
+import CPATracking, { useCPAConversion } from '@/components/CPATracking';
 
 
 interface Plan {
@@ -33,6 +34,7 @@ interface PixResponse {
 export default function LandingPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const { isCPASource, triggerConversion } = useCPAConversion();
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showPixPayment, setShowPixPayment] = useState(false);
@@ -51,6 +53,7 @@ export default function LandingPage() {
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null);
+  const [mercadoPagoPaymentId, setMercadoPagoPaymentId] = useState<number | null>(null);
   const [referralData, setReferralData] = useState<{
     source: string;
     campaign: string;
@@ -194,6 +197,17 @@ export default function LandingPage() {
           setEmail(userEmail);
         }
         
+        // Processar tracking CPA se aplicável
+        if (isCPASource && selectedPlan) {
+          console.log('🎯 Processando conversão CPA para TrafficStars');
+          try {
+            await triggerConversion(userEmail, selectedPlan.id, selectedPlan.price / 100);
+            console.log('✅ Conversão CPA registrada com sucesso');
+          } catch (error) {
+            console.error('❌ Erro ao registrar conversão CPA:', error);
+          }
+        }
+        
         // Mostrar formulário de senha após processar payment
         setShowPasswordForm(true);
         setShowModal(true); // Garantir que o modal está aberto
@@ -317,6 +331,18 @@ export default function LandingPage() {
               const statusData = await response.json();
               if (statusData.paid && !paymentConfirmed) {
                 console.log('✅ Pagamento confirmado automaticamente!');
+                
+                // Processar tracking CPA se aplicável
+                if (isCPASource && selectedPlan) {
+                  console.log('🎯 Processando conversão CPA para TrafficStars (PIX)');
+                  try {
+                    await triggerConversion(email, selectedPlan.id, selectedPlan.price / 100);
+                    console.log('✅ Conversão CPA registrada com sucesso (PIX)');
+                  } catch (error) {
+                    console.error('❌ Erro ao registrar conversão CPA (PIX):', error);
+                  }
+                }
+                
                 // Pagamento confirmado! Mostrar formulário de senha
                 setPaymentConfirmed(true);
                 setShowPixPayment(false);
@@ -368,6 +394,18 @@ export default function LandingPage() {
             const statusData = await response.json();
             if (statusData.paid && !paymentConfirmed) {
               console.log('✅ Pagamento já confirmado via webhook!');
+              
+              // Processar tracking CPA se aplicável
+              if (isCPASource && selectedPlan) {
+                console.log('🎯 Processando conversão CPA para TrafficStars (PIX - Webhook)');
+                try {
+                  await triggerConversion(email, selectedPlan.id, selectedPlan.price / 100);
+                  console.log('✅ Conversão CPA registrada com sucesso (PIX - Webhook)');
+                } catch (error) {
+                  console.error('❌ Erro ao registrar conversão CPA (PIX - Webhook):', error);
+                }
+              }
+              
               setPaymentConfirmed(true);
               setShowPixPayment(false);
               setShowPasswordForm(true);
@@ -381,6 +419,110 @@ export default function LandingPage() {
       return () => clearTimeout(immediateCheck);
     }
   }, [pixData, showPixPayment, paymentConfirmed]);
+
+  // Polling automático para verificar status do pagamento MercadoPago
+  useEffect(() => {
+    if (mercadoPagoPaymentId && !paymentConfirmed) {
+      console.log('🎯 Iniciando polling automático para MercadoPago:', mercadoPagoPaymentId);
+      
+      // Aguardar 10 segundos antes de começar o polling
+      const initialDelay = setTimeout(() => {
+        const pollInterval = setInterval(async () => {
+          try {
+            console.log('🔍 Verificando status do pagamento MercadoPago:', mercadoPagoPaymentId);
+            
+            const response = await fetch(`/api/mercado-pago/status?paymentId=${mercadoPagoPaymentId}`, {
+              method: 'GET',
+            });
+
+            if (response.ok) {
+              const statusData = await response.json();
+              console.log('📊 Status do pagamento MercadoPago:', statusData);
+              
+              if ((statusData.status === 'approved' || statusData.status === 'paid') && !paymentConfirmed) {
+                console.log('✅ Pagamento MercadoPago confirmado automaticamente!');
+                
+                // Processar tracking CPA se aplicável
+                if (isCPASource && selectedPlan) {
+                  console.log('🎯 Processando conversão CPA para TrafficStars (MercadoPago)');
+                  try {
+                    await triggerConversion(email, selectedPlan.id, selectedPlan.price / 100);
+                    console.log('✅ Conversão CPA registrada com sucesso (MercadoPago)');
+                  } catch (error) {
+                    console.error('❌ Erro ao registrar conversão CPA (MercadoPago):', error);
+                  }
+                }
+                
+                // Pagamento confirmado! Mostrar formulário de senha
+                setPaymentConfirmed(true);
+                setShowPasswordForm(true);
+                setShowModal(true);
+                clearInterval(pollInterval);
+              }
+            } else {
+              console.log('⚠️ Erro ao verificar status do pagamento MercadoPago:', response.status);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao verificar status do pagamento MercadoPago:', error);
+          }
+        }, 10000); // Verificar a cada 10 segundos
+
+        // Limpar o polling após 10 minutos
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          console.log('⏰ Polling do MercadoPago finalizado após 10 minutos');
+        }, 10 * 60 * 1000);
+
+        return () => clearInterval(pollInterval);
+      }, 10000); // Aguardar 10 segundos antes de começar
+
+      return () => clearTimeout(initialDelay);
+    }
+  }, [mercadoPagoPaymentId, paymentConfirmed, isCPASource, selectedPlan, email, triggerConversion]);
+
+  // Verificação imediata do status do pagamento MercadoPago (para casos onde o webhook já processou)
+  useEffect(() => {
+    if (mercadoPagoPaymentId && !paymentConfirmed) {
+      // Aguardar 5 segundos e fazer uma verificação imediata
+      const immediateCheck = setTimeout(async () => {
+        try {
+          console.log('🔍 Verificação imediata do pagamento MercadoPago:', mercadoPagoPaymentId);
+          
+          const response = await fetch(`/api/mercado-pago/status?paymentId=${mercadoPagoPaymentId}`, {
+            method: 'GET',
+          });
+
+          if (response.ok) {
+            const statusData = await response.json();
+            console.log('📊 Status imediato do pagamento MercadoPago:', statusData);
+            
+            if ((statusData.status === 'approved' || statusData.status === 'paid') && !paymentConfirmed) {
+              console.log('✅ Pagamento MercadoPago já confirmado via webhook!');
+              
+              // Processar tracking CPA se aplicável
+              if (isCPASource && selectedPlan) {
+                console.log('🎯 Processando conversão CPA para TrafficStars (MercadoPago - Webhook)');
+                try {
+                  await triggerConversion(email, selectedPlan.id, selectedPlan.price / 100);
+                  console.log('✅ Conversão CPA registrada com sucesso (MercadoPago - Webhook)');
+                } catch (error) {
+                  console.error('❌ Erro ao registrar conversão CPA (MercadoPago - Webhook):', error);
+                }
+              }
+              
+              setPaymentConfirmed(true);
+              setShowPasswordForm(true);
+              setShowModal(true);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Erro na verificação imediata do pagamento MercadoPago:', error);
+        }
+      }, 5000);
+
+      return () => clearTimeout(immediateCheck);
+    }
+  }, [mercadoPagoPaymentId, paymentConfirmed, isCPASource, selectedPlan, email, triggerConversion]);
 
   // Log quando QR code for exibido
   useEffect(() => {
@@ -410,6 +552,17 @@ export default function LandingPage() {
       if (response.ok) {
         const statusData = await response.json();
         if (statusData.paid && !paymentConfirmed) {
+          // Processar tracking CPA se aplicável
+          if (isCPASource && selectedPlan) {
+            console.log('🎯 Processando conversão CPA para TrafficStars (PIX - Manual)');
+            try {
+              await triggerConversion(email, selectedPlan.id, selectedPlan.price / 100);
+              console.log('✅ Conversão CPA registrada com sucesso (PIX - Manual)');
+            } catch (error) {
+              console.error('❌ Erro ao registrar conversão CPA (PIX - Manual):', error);
+            }
+          }
+          
           // Pagamento confirmado! Mostrar formulário de senha
           setPaymentConfirmed(true);
           setShowPixPayment(false);
@@ -569,6 +722,18 @@ export default function LandingPage() {
       });
       
       setPixData(pixResponse);
+      
+      // Capturar payment_id do MercadoPago para verificação automática
+      if (pixResponse.payment_id && typeof pixResponse.payment_id === 'number') {
+        setMercadoPagoPaymentId(pixResponse.payment_id);
+        console.log('🎯 MercadoPago Payment ID capturado:', pixResponse.payment_id);
+      } else if (pixResponse.payment_id && typeof pixResponse.payment_id === 'string') {
+        const paymentIdNumber = parseInt(pixResponse.payment_id);
+        if (!isNaN(paymentIdNumber)) {
+          setMercadoPagoPaymentId(paymentIdNumber);
+          console.log('🎯 MercadoPago Payment ID capturado (convertido):', paymentIdNumber);
+        }
+      }
       
       // Se não tem QR code base64, tentar gerar localmente
       if (!pixResponse.qr_code_base64 && pixResponse.qr_code) {
@@ -1714,6 +1879,9 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+      
+      {/* Componente de tracking CPA */}
+      <CPATracking userId={session?.user?.id} />
     </div>
   );
 } 

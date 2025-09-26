@@ -1,0 +1,38 @@
+# Patch para otimizações da LandingPage.tsx
+# Aplicar estas mudanças para melhorar a detecção de pagamentos
+
+# 1. Otimizar polling PIX (linha ~356)
+# ANTES:
+# }, 60000); // Verificar a cada 60 segundos (respeitando limite da PushinPay)
+# DEPOIS:
+# }, 15000); // Verificar a cada 15 segundos (mais rápido)
+
+# 2. Otimizar delay inicial PIX (linha ~360)
+# ANTES:
+# }, 30000); // Aguardar 30 segundos antes de começar
+# DEPOIS:
+# }, 10000); // Aguardar apenas 10 segundos antes de começar
+
+# 3. Otimizar polling MercadoPago (linha ~468)
+# ANTES:
+# }, 10000); // Verificar a cada 10 segundos
+# DEPOIS:
+# }, 5000); // Verificar a cada 5 segundos (mais rápido)
+
+# 4. Otimizar delay inicial MercadoPago (linha ~477)
+# ANTES:
+# }, 10000); // Aguardar 10 segundos antes de começar
+# DEPOIS:
+# }, 3000); // Aguardar apenas 3 segundos antes de começar
+
+# 5. Otimizar verificação imediata PIX (linha ~417)
+# ANTES:
+# }, 10000); // Aguardar 10 segundos
+# DEPOIS:
+# }, 3000); // Aguardar apenas 3 segundos
+
+# 6. Otimizar verificação imediata MercadoPago (linha ~521)
+# ANTES:
+# }, 5000);
+# DEPOIS:
+# }, 2000); // Aguardar apenas 2 segundos

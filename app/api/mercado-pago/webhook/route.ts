@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { convertReaisToDollars, getExchangeRate } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -235,6 +236,8 @@ export async function POST(request: Request) {
           console.log('✅ Payment atualizado:', payment.id);
         } else {
           console.log('ℹ️ Payment já existe com o mesmo status, ignorando atualização:', payment.id);
+          // Se o pagamento já foi processado, não processar novamente
+          return NextResponse.json({ message: 'Pagamento já processado anteriormente' });
         }
       } else {
         // Verificar se existe um pagamento duplicado baseado em userId, amount e plan
@@ -344,6 +347,98 @@ export async function POST(request: Request) {
           } catch (campaignError) {
             console.error('❌ Erro ao registrar conversão de campanha:', campaignError);
           }
+        }
+
+        // Processar tracking CPA se aplicável
+        try {
+          console.log('🎯 Verificando tracking CPA para MercadoPago...');
+          
+          // Buscar tracking CPA ativo para este usuário
+          const cpaTrackingData = await prisma.campaignTracking.findFirst({
+            where: {
+              userId: user.id,
+              converted: false,
+              source: {
+                startsWith: 'cpa'
+              }
+            },
+            orderBy: {
+              timestamp: 'desc'
+            }
+          });
+
+          if (cpaTrackingData) {
+            console.log('🎯 Tracking CPA encontrado para MercadoPago:', cpaTrackingData);
+            
+            // Marcar como convertido
+            await prisma.campaignTracking.update({
+              where: { id: cpaTrackingData.id },
+              data: {
+                converted: true,
+                convertedAt: new Date()
+              }
+            });
+
+            // Enviar postback para TrafficStars
+            const postbackUrl = new URL('https://tsyndicate.com/api/v1/cpa/action');
+            
+            // Converter valor de reais para dólares
+            const exchangeRate = getExchangeRate();
+            const valueInDollars = convertReaisToDollars(paymentSession.amount, exchangeRate);
+            
+            console.log('💰 Conversão de moeda para postback:', {
+              valorOriginalBRL: paymentSession.amount,
+              taxaCambio: exchangeRate,
+              valorConvertidoUSD: valueInDollars
+            });
+            
+            postbackUrl.searchParams.set('value', valueInDollars.toString());
+            postbackUrl.searchParams.set('clickid', (cpaTrackingData as any).clickId || '');
+            postbackUrl.searchParams.set('key', 'GODOiGyqwq6r1PxUDZTPjkyoyTeocItpUE7K');
+            postbackUrl.searchParams.set('goalid', (cpaTrackingData as any).goalId || '0');
+            
+            // Adicionar lead_code se disponível
+            if ((cpaTrackingData as any).leadCode) {
+              postbackUrl.searchParams.set('lead_code', (cpaTrackingData as any).leadCode);
+            }
+
+            console.log('🎯 Enviando postback CPA para TrafficStars (MercadoPago):', postbackUrl.toString());
+
+            try {
+              const postbackResponse = await fetch(postbackUrl.toString(), {
+                method: 'GET',
+                headers: {
+                  'User-Agent': 'CPA-Tracking-MercadoPago/1.0'
+                }
+              });
+
+              if (postbackResponse.ok) {
+                const responseText = await postbackResponse.text();
+                console.log('✅ Postback CPA enviado com sucesso para TrafficStars (MercadoPago)');
+                console.log('📄 Resposta do TrafficStars:', responseText);
+              } else {
+                const errorText = await postbackResponse.text();
+                console.error('❌ Erro ao enviar postback CPA para TrafficStars (MercadoPago):', postbackResponse.status);
+                console.error('📄 Erro detalhado:', errorText);
+                console.error('🔗 URL do postback:', postbackUrl.toString());
+                console.error('📊 Parâmetros:', {
+                  value: valueInDollars.toString(),
+                  valueOriginalBRL: paymentSession.amount.toString(),
+                  clickid: (cpaTrackingData as any).clickId || '',
+                  key: 'GODOiGyqwq6r1PxUDZTPjkyoyTeocItpUE7K',
+                  goalid: (cpaTrackingData as any).goalId || '0',
+                  lead_code: (cpaTrackingData as any).leadCode
+                });
+              }
+            } catch (postbackError) {
+              console.error('❌ Erro ao enviar postback CPA para TrafficStars (MercadoPago):', postbackError);
+              console.error('🔗 URL do postback:', postbackUrl.toString());
+            }
+          } else {
+            console.log('ℹ️ Nenhum tracking CPA encontrado para MercadoPago');
+          }
+        } catch (cpaError) {
+          console.error('❌ Erro ao processar tracking CPA (MercadoPago):', cpaError);
         }
       } else {
         console.warn('❌ Nenhum usuário encontrado com o userId:', paymentSession.userId);

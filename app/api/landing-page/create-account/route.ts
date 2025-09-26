@@ -75,10 +75,20 @@ export async function POST(request: NextRequest) {
             utm_content: referralData.utm_content || null,
             ipAddress: 'landing_page',
             pageUrl: 'landing_page',
+            clickId: referralData.clickId || null,
+            goalId: referralData.goalId || null,
+            value: referralData.value || null,
+            price: referralData.price || null,
+            leadCode: referralData.leadCode || null,
             userId: user.id, // Vincular ao usuário criado
           }
         })
-        console.log('✅ Tracking registrado para usuário:', { userId: user.id, source: referralData.source })
+        console.log('✅ Tracking registrado para usuário:', { 
+          userId: user.id, 
+          source: referralData.source,
+          clickId: referralData.clickId,
+          campaign: referralData.campaign
+        })
       } catch (error) {
         console.error('❌ Erro ao registrar tracking:', error)
       }

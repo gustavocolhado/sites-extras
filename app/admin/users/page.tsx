@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Search, Filter, MoreVertical, Edit, Trash2, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import EditUserModal from '@/components/admin/EditUserModal'
 
 interface User {
   id: string
@@ -12,6 +13,7 @@ interface User {
   created_at: string
   update_at: string
   access: number
+  expireDate?: string
 }
 
 interface Pagination {
@@ -28,6 +30,8 @@ export default function AdminUsers() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState('all')
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 10,
@@ -75,6 +79,22 @@ export default function AdminUsers() {
 
   const handlePageChange = (newPage: number) => {
     fetchUsers(newPage, searchTerm, filter)
+  }
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user)
+    setIsEditModalOpen(true)
+  }
+
+  const handleCloseEditModal = () => {
+    setSelectedUser(null)
+    setIsEditModalOpen(false)
+  }
+
+  const handleSaveUser = (updatedUser: User) => {
+    setUsers(users.map(user => 
+      user.id === updatedUser.id ? updatedUser : user
+    ))
   }
 
   if (isLoading) {
@@ -214,7 +234,11 @@ export default function AdminUsers() {
                         <button className="p-1 text-slate-400 hover:text-indigo-600 transition-colors">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-slate-400 hover:text-emerald-600 transition-colors">
+                        <button 
+                          onClick={() => handleEditUser(user)}
+                          className="p-1 text-slate-400 hover:text-emerald-600 transition-colors"
+                          title="Editar usuário"
+                        >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button className="p-1 text-slate-400 hover:text-rose-600 transition-colors">
@@ -279,6 +303,14 @@ export default function AdminUsers() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Edição */}
+      <EditUserModal
+        user={selectedUser}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveUser}
+      />
     </div>
   )
 }

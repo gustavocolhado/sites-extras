@@ -332,6 +332,11 @@ model CampaignTracking {
   utm_content String?  // UTM content
   ipAddress   String   // IP do usuário
   pageUrl     String   // URL da página
+  clickId     String?  // ID do clique para CPA tracking
+  goalId      String?  // ID do objetivo para CPA tracking
+  value       String?  // Valor para CPA tracking
+  price       String?  // Preço para CPA tracking
+  leadCode    String?  // Código do lead para CPA tracking
   converted   Boolean  @default(false) // Se converteu em assinatura
   convertedAt DateTime? // Quando converteu
   userId      String?  @db.ObjectId // ID do usuário se convertido
@@ -342,6 +347,7 @@ model CampaignTracking {
   @@index([source, campaign])
   @@index([timestamp])
   @@index([converted])
+  @@index([clickId])
   @@map("campaign_tracking")
 }
 
@@ -513,4 +519,21 @@ model EmailCampaignConversion {
   @@index([userId])
   @@index([convertedAt])
   @@map("email_campaign_conversions")
+}
+
+model TrafficStarsConversion {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  clickId         String   // ID do clique do TrafficStars
+  value           Float?   // Valor da conversão
+  price           Float?   // Preço da conversão
+  goalId          Int      @default(0) // ID do objetivo
+  leadCode        String?  // Código do lead
+  allowDuplicates Boolean  @default(false) // Permitir duplicatas
+  convertedAt     DateTime @default(now()) // Data da conversão
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clickId])
+  @@index([convertedAt])
+  @@map("trafficstars_conversions")
 }

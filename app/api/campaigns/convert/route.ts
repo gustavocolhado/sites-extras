@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     const {
-      userId,
+      userId, // Este pode ser email ou ObjectId
       source,
       campaign,
       planId,
@@ -19,6 +19,24 @@ export async function POST(request: NextRequest) {
         { error: 'Dados obrigatórios não fornecidos' },
         { status: 400 }
       )
+    }
+
+    // Se userId for um email, buscar o usuário pelo email
+    let actualUserId = userId
+    if (userId.includes('@')) {
+      const user = await prisma.user.findUnique({
+        where: { email: userId },
+        select: { id: true }
+      })
+      
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Usuário não encontrado' },
+          { status: 404 }
+        )
+      }
+      
+      actualUserId = user.id
     }
 
     // Buscar o tracking da campanha mais recente para este usuário
@@ -42,13 +60,14 @@ export async function POST(request: NextRequest) {
         data: {
           converted: true,
           convertedAt: new Date(),
-          userId
+          userId: actualUserId
         }
       })
 
       console.log('🎯 Conversão registrada:', {
         campaignId: campaignTracking.id,
-        userId,
+        userId: actualUserId,
+        email: userId,
         source,
         campaign,
         planId,
@@ -59,7 +78,7 @@ export async function POST(request: NextRequest) {
     // Salvar dados da conversão em uma tabela separada se necessário
     const conversion = await prisma.campaignConversion.create({
       data: {
-        userId,
+        userId: actualUserId,
         source,
         campaign,
         planId: planId || null,
