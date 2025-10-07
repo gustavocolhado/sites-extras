@@ -39,43 +39,24 @@ export async function POST(request: NextRequest) {
       actualUserId = user.id
     }
 
-    // Buscar o tracking da campanha mais recente para este usuário
-    const campaignTracking = await prisma.campaignTracking.findFirst({
+    // Verificar se já existe uma conversão para este usuário e campanha
+    const existingConversion = await prisma.campaignConversion.findFirst({
       where: {
-        source,
-        campaign,
-        converted: false
-      },
-      orderBy: {
-        timestamp: 'desc'
-      }
-    })
-
-    if (campaignTracking) {
-      // Marcar como convertido
-      await prisma.campaignTracking.update({
-        where: {
-          id: campaignTracking.id
-        },
-        data: {
-          converted: true,
-          convertedAt: new Date(),
-          userId: actualUserId
-        }
-      })
-
-      console.log('🎯 Conversão registrada:', {
-        campaignId: campaignTracking.id,
         userId: actualUserId,
-        email: userId,
-        source,
-        campaign,
-        planId,
-        amount
-      })
+        campaign: campaign,
+      },
+    });
+
+    if (existingConversion) {
+      console.log(`✅ Conversão já registrada para o usuário ${actualUserId} na campanha ${campaign}.`);
+      return NextResponse.json({
+        success: true,
+        message: 'Conversão já registrada anteriormente',
+        conversionId: existingConversion.id,
+      });
     }
 
-    // Salvar dados da conversão em uma tabela separada se necessário
+    // Se não houver conversão existente, criar uma nova
     const conversion = await prisma.campaignConversion.create({
       data: {
         userId: actualUserId,
@@ -83,15 +64,15 @@ export async function POST(request: NextRequest) {
         campaign,
         planId: planId || null,
         amount: amount || 0,
-        convertedAt: new Date()
-      }
-    })
+        convertedAt: new Date(),
+      },
+    });
 
     return NextResponse.json({
       success: true,
       message: 'Conversão registrada com sucesso',
-      conversionId: conversion.id
-    })
+      conversionId: conversion.id,
+    });
 
   } catch (error) {
     console.error('❌ Erro ao registrar conversão:', error)
@@ -101,4 +82,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Layout from '@/components/Layout'
 import Header from '@/components/Header'
 import Creators from '@/components/Creators'
@@ -8,6 +10,7 @@ import PremiumBanner from '@/components/PremiumBanner'
 import SEOHead from '@/components/SEOHead'
 import AdIframe728x90 from '@/components/ads/728x90'
 import AdIframe300x100 from '@/components/ads/300x100'
+import SetPasswordModal from '@/components/SetPasswordModal'
 
 import { useSession } from 'next-auth/react'
 import { usePremiumStatus } from '@/hooks/usePremiumStatus'
@@ -17,6 +20,17 @@ import AdIframe300x250 from '@/components/ads/300x250'
 export default function Home() {
   const { data: session } = useSession()
   const { isPremium } = usePremiumStatus()
+  const [showSetPasswordModal, setShowSetPasswordModal] = useState(false)
+  const pathname = usePathname()
+
+  useEffect(() => {
+    // @ts-ignore
+    if (session?.user?.needsPasswordChange && pathname === '/') {
+      setShowSetPasswordModal(true)
+    } else {
+      setShowSetPasswordModal(false)
+    }
+  }, [session, pathname])
 
   return (
     <>
@@ -44,31 +58,35 @@ export default function Home() {
       />
       <Layout>
         <Header />
-        <main className="min-h-screen bg-theme-primary">
+        <main className="min-h-screen">
           {/* Mostrar PremiumBanner apenas para usuários não premium */}
           {!session?.user?.premium && <PremiumBanner />}
                     
           <Creators />
 
-          <Section>
-            <div className="hidden md:flex md:justify-center">
-              <AdIframe728x90 />
-            </div>
-            <div className="flex justify-center md:hidden">
-              <AdIframe300x100 />
-            </div>
-          </Section>
+          {!session?.user?.premium && (
+            <Section>
+              <div className="hidden md:flex md:justify-center">
+                <AdIframe728x90 />
+              </div>
+              <div className="flex justify-center md:hidden">
+                <AdIframe300x100 />
+              </div>
+            </Section>
+          )}
           
           <VideoSection />
 
-          <Section>
-            <div className="hidden md:flex md:justify-center">
-              <AdIframe728x90 />
-            </div>
-            <div className="flex justify-center md:hidden">
-              <AdIframe300x100 />
-            </div>
-          </Section>
+          {!session?.user?.premium && (
+            <Section>
+              <div className="hidden md:flex md:justify-center">
+                <AdIframe728x90 />
+              </div>
+              <div className="flex justify-center md:hidden">
+                <AdIframe300x100 />
+              </div>
+            </Section>
+          )}
           {/* SEO Content Section */}
           <Section className="bg-theme-card py-8 px-4">
             <div className="container w-full">
@@ -97,6 +115,13 @@ export default function Home() {
         
         </main>
       </Layout>
+      {session?.user?.email && (
+        <SetPasswordModal
+          isOpen={showSetPasswordModal}
+          onClose={() => setShowSetPasswordModal(false)}
+          userEmail={session.user.email}
+        />
+      )}
     </>
   )
 }

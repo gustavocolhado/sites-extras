@@ -135,7 +135,7 @@ export default function CreatorsPage() {
                    <div
                      key={creator.id}
                      onClick={() => handleCreatorClick(creator)}
-                     className="bg-theme-card rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-105"
+                     className="bg-theme-card rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-105 flex flex-col"
                    >
                      <div className="p-4 flex items-center gap-3">
                        {/* Avatar do criador */}
@@ -145,7 +145,7 @@ export default function CreatorsPage() {
                            alt={creator.name}
                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                            onError={(e) => {
-                             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTI0IDI0QzI4LjQxODMgMjQgMzIgMjAuNDE4MyAzMiAxNkMzMiAxMS41ODE3IDI4LjQxODMgOCAyNCA4QzE5LjU4MTcgOCAxNiAxMS41ODE3IDE2IDE2QzE2IDIwLjQxODMgMTkuNTgxNyAyNCAyNCAyNFoiIGZpbGw9IiNEMUQ1REIiLz4KPHBhdGggZD0iTTQwIDQwQzQwIDMyLjI2ODAxIDMyLjgzNiAyNiAyNCAyNkMxNS4xNjQgMjYgOCAzMi4yNjgwMSA4IDQwIiBmaWxsPSIjRDFENURCIi8+Cjwvc3ZnPgo='
+                             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTI0IDI0QzI4LjQxODMgMjQgMzIgMjAuNDE4MyAzMiAxNkMzMiAxMS41ODE3IDI4LjQxODMgOCAyNCA4QzE5LjU4MTcgOCAxNiAxMS41ODE3IDE2IDE2QzE2IDIwLjQxODMgMTkuNTgxNyAyNCAyNCAyNFoiIGZpbGw9IiNEMUQ1REIiLz4KPHBhdGggZD0iTTQwIDQwQzQwIDMyLjI2ODAxIDMyLjgzNiAyNiAyNCAyNkMxNS4xNjQgMjYgOCAzMi4yNjgwMSA4IDQwIiBmaWllbGw9IiNEMUQ1REIiLz4KPC9zdmc+Cg=='
                            }}
                          />
                        </div>
@@ -153,9 +153,9 @@ export default function CreatorsPage() {
                        {/* Informações do criador */}
                        <div className="flex-1 min-w-0">
                          {/* Nome do criador */}
-                                                   <h3 className={`text-sm font-semibold mb-1 truncate text-theme-primary ${!isPremium ? 'blur-sm' : ''}`}>
-                            {creator.name}
-                          </h3>
+                         <h3 className={`text-sm font-semibold mb-1 truncate text-theme-primary ${!isPremium ? 'blur-sm' : ''}`}>
+                           {creator.name}
+                         </h3>
                          
                          {/* Contador de vídeos */}
                          <div className="text-xs text-theme-secondary">
@@ -163,6 +163,11 @@ export default function CreatorsPage() {
                          </div>
                        </div>
                      </div>
+                     {creator.description && (
+                       <div className={`px-4 pb-4 text-xs text-theme-muted line-clamp-2 ${!isPremium ? 'blur-sm' : ''}`}>
+                         {creator.description}
+                       </div>
+                     )}
                    </div>
                  ))}
                </div>
@@ -172,4 +177,4 @@ export default function CreatorsPage() {
       </main>
     </Layout>
   )
-} 
+}

@@ -49,14 +49,15 @@ export default function AdminPayments() {
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
-    status: 'all'
+    status: 'all',
+    plan: 'all'
   })
   const [showDuplicates, setShowDuplicates] = useState(false)
   const [isRemovingDuplicates, setIsRemovingDuplicates] = useState(false)
   const [duplicatesPreview, setDuplicatesPreview] = useState<any[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
-  const fetchPayments = async (page = 1, startDate = '', endDate = '', status = 'all', duplicates = false) => {
+  const fetchPayments = async (page = 1, startDate = '', endDate = '', status = 'all', plan = 'all', duplicates = false) => {
     setIsLoading(true)
     try {
       const params = new URLSearchParams({
@@ -65,6 +66,7 @@ export default function AdminPayments() {
         startDate,
         endDate,
         status,
+        plan,
         showDuplicates: duplicates.toString()
       })
       
@@ -83,15 +85,15 @@ export default function AdminPayments() {
   }
 
   useEffect(() => {
-    fetchPayments(1, filters.startDate, filters.endDate, filters.status, showDuplicates)
+    fetchPayments(1, filters.startDate, filters.endDate, filters.status, filters.plan, showDuplicates)
   }, [showDuplicates])
 
   const handleFilterChange = () => {
-    fetchPayments(1, filters.startDate, filters.endDate, filters.status, showDuplicates)
+    fetchPayments(1, filters.startDate, filters.endDate, filters.status, filters.plan, showDuplicates)
   }
 
   const handlePageChange = (newPage: number) => {
-    fetchPayments(newPage, filters.startDate, filters.endDate, filters.status, showDuplicates)
+    fetchPayments(newPage, filters.startDate, filters.endDate, filters.status, filters.plan, showDuplicates)
   }
 
   const handleToggleDuplicates = () => {
@@ -128,7 +130,7 @@ export default function AdminPayments() {
         const data = await response.json()
         alert(`${data.removedCount} pagamentos duplicados foram removidos com sucesso!`)
         // Recarregar a lista
-        fetchPayments(1, filters.startDate, filters.endDate, filters.status, showDuplicates)
+        fetchPayments(1, filters.startDate, filters.endDate, filters.status, filters.plan, showDuplicates)
       } else {
         alert('Erro ao remover duplicados')
       }
@@ -264,6 +266,21 @@ export default function AdminPayments() {
                 <option value="pending">Pendente</option>
                 <option value="failed">Falhou</option>
                 <option value="cancelled">Cancelado</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Plano</label>
+              <select
+                value={filters.plan}
+                onChange={(e) => setFilters({ ...filters, plan: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/50 backdrop-blur-sm"
+              >
+                <option value="all">Todos os planos</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="semiannual">Semiannual</option>
+                <option value="yearly">Yearly</option>
+                <option value="lifetime">Lifetime</option>
               </select>
             </div>
             <div className="flex items-end space-x-2">

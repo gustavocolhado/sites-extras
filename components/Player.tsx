@@ -14,6 +14,7 @@ interface PlayerProps {
   loop?: boolean
   controls?: boolean
   preload?: 'auto' | 'metadata' | 'none'
+  className?: string
 }
 
 export default function VideoJSPlayer({ 
@@ -26,7 +27,8 @@ export default function VideoJSPlayer({
   muted = false, 
   loop = false,
   controls = true,
-  preload = 'auto'
+  preload = 'auto',
+  className = 'aspect-video rounded-lg'
 }: PlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -124,9 +126,14 @@ export default function VideoJSPlayer({
   const getVideoType = (url: string) => {
     if (!url) return 'video/mp4'
     
-    // Verificar se é uma URL de embed
+    // Verificar se é uma URL de iframe da MediaDelivery
+    if (url.startsWith('https://iframe.mediadelivery.net/play/')) {
+      console.log('🎬 Player: URL de iframe da MediaDelivery detectada, usando iframe')
+      return 'iframe'
+    }
+    // Verificar se é uma URL de embed genérica
     if (url.includes('/embed/') || url.includes('embed')) {
-      console.log('🎬 Player: URL de embed detectada, usando iframe')
+      console.log('🎬 Player: URL de embed genérica detectada, usando iframe')
       return 'iframe'
     }
     
@@ -616,14 +623,14 @@ export default function VideoJSPlayer({
   const shouldUseIframe = getVideoType(videoUrl) === 'iframe'
 
   return (
-    <div className="relative bg-black aspect-video rounded-lg overflow-hidden">
+    <div className={`relative ${className} h-80 md:h-full`}>
       {/* Loading Overlay removido - vídeo carrega direto */}
 
       {/* Iframe para embeds */}
       {shouldUseIframe ? (
         <iframe
           src={videoUrl}
-          className="w-full h-full"
+          className="w-full h-full object-cover"
           frameBorder="0"
           allowFullScreen
           allow="autoplay; fullscreen; picture-in-picture"
@@ -633,7 +640,7 @@ export default function VideoJSPlayer({
         /* Video Element */
         <video
           ref={videoRef}
-          className="w-full h-full"
+          className="w-full h-full object-cover"
           playsInline
           webkit-playsinline="true"
           x-webkit-airplay="allow"

@@ -2,39 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Search, Filter, ChevronLeft, ChevronRight, Calendar, Users, TrendingUp, DollarSign, Target } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users, TrendingUp, DollarSign, Target } from 'lucide-react'
 
-interface CampaignTracking {
-  id: string
-  source: string
-  campaign: string
-  timestamp: string
-  userAgent: string
-  referrer: string
-  utm_source?: string
-  utm_medium?: string
-  utm_campaign?: string
-  utm_term?: string
-  utm_content?: string
-  ipAddress: string
-  pageUrl: string
-  converted: boolean
-  convertedAt?: string
-  createdAt: string
-  User?: {
-    id: string
-    name: string
-    email: string
+const formatCurrency = (value: number) => {
+  // Se o valor for um número inteiro e maior que 100 (assumindo que valores menores que 100 são reais, e maiores são centavos)
+  if (Number.isInteger(value) && value >= 100) {
+    return (value / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, style: 'currency', currency: 'BRL' });
   }
-}
+  // Caso contrário, assume que já está em reais
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, style: 'currency', currency: 'BRL' });
+};
 
 interface Pagination {
   page: number
   limit: number
   total: number
   pages: number
-  hasNext: boolean
-  hasPrev: boolean
 }
 
 interface Stats {
@@ -42,40 +25,51 @@ interface Stats {
   totalConversions: number
   conversionRate: number
   totalRevenue: number
-  totalMonetaryConversions: number
 }
 
 interface CampaignStats {
-  source: string
-  campaign: string
-  _count: {
-    id: number
-  }
-  _sum: {
-    converted: number
-    revenue: number
-  }
+  source: string;
+  campaign: string;
+  visits: number;
+  conversions: number;
+  revenue: number;
+}
+
+interface DetailedConversion {
+  id: string;
+  source: string;
+  campaign: string;
+  amount: number;
+  convertedAt: string;
+  User: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export default function AdminCampaigns() {
-  const [trackingData, setTrackingData] = useState<CampaignTracking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 10,
     total: 0,
     pages: 0,
-    hasNext: false,
-    hasPrev: false
   })
   const [stats, setStats] = useState<Stats>({
     totalVisits: 0,
     totalConversions: 0,
     conversionRate: 0,
     totalRevenue: 0,
-    totalMonetaryConversions: 0
   })
   const [campaignStats, setCampaignStats] = useState<CampaignStats[]>([])
+  const [detailedConversions, setDetailedConversions] = useState<DetailedConversion[]>([]);
+  const [conversionsPagination, setConversionsPagination] = useState<Pagination>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0,
+  });
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -98,10 +92,11 @@ export default function AdminCampaigns() {
       const response = await fetch(`/api/admin/campaigns?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setTrackingData(data.trackingData)
         setPagination(data.pagination)
         setStats(data.stats)
         setCampaignStats(data.campaignStats || [])
+        setDetailedConversions(data.detailedConversions || [])
+        setConversionsPagination(data.conversionsPagination || {})
       }
     } catch (error) {
       console.error('Erro ao carregar campanhas:', error)
@@ -194,7 +189,7 @@ export default function AdminCampaigns() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">R$ {stats.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-slate-900">{formatCurrency(stats.totalRevenue)}</div>
             <p className="text-xs text-slate-500">
               Receita gerada
             </p>
@@ -283,15 +278,15 @@ export default function AdminCampaigns() {
                     <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                       <td className="py-3 px-4 font-medium text-slate-900">{stat.source}</td>
                       <td className="py-3 px-4 text-slate-600">{stat.campaign}</td>
-                      <td className="py-3 px-4 text-slate-600">{stat._count.id.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-slate-600">{stat._sum.converted || 0}</td>
+                      <td className="py-3 px-4 text-slate-600">{(stat.visits || 0).toLocaleString()}</td>
+                      <td className="py-3 px-4 text-slate-600">{(stat.conversions || 0).toLocaleString()}</td>
                       <td className="py-3 px-4">
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
-                          {stat._count.id > 0 ? Math.round(((stat._sum.converted || 0) / stat._count.id) * 100 * 100) / 100 : 0}%
+                          {(stat.visits || 0) > 0 ? Math.round(((stat.conversions || 0) / (stat.visits || 1)) * 100 * 100) / 100 : 0}%
                         </span>
                       </td>
                       <td className="py-3 px-4 text-slate-600 font-medium">
-                        R$ {(stat._sum.revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        {formatCurrency(stat.revenue || 0)}
                       </td>
                     </tr>
                   ))}
@@ -302,71 +297,61 @@ export default function AdminCampaigns() {
         </Card>
       )}
 
-      {/* Valor Total por Fonte */}
-      {campaignStats.length > 0 && (
-        <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-slate-900">Valor Total por Fonte</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 font-medium text-slate-900">Fonte</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-900">Total de Visitas</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-900">Total de Conversões</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-900">Valor Total Gerado</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-900">Valor Médio por Conversão</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    // Agrupar dados por fonte
-                    const sourceStats = campaignStats.reduce((acc, stat) => {
-                      if (!acc[stat.source]) {
-                        acc[stat.source] = {
-                          source: stat.source,
-                          totalVisits: 0,
-                          totalConversions: 0,
-                          totalRevenue: 0
-                        }
-                      }
-                      acc[stat.source].totalVisits += stat._count.id
-                      acc[stat.source].totalConversions += stat._sum.converted
-                      acc[stat.source].totalRevenue += stat._sum.revenue
-                      return acc
-                    }, {} as Record<string, { source: string; totalVisits: number; totalConversions: number; totalRevenue: number }>)
-
-                    return Object.values(sourceStats).map((sourceStat, index) => (
-                      <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3 px-4 font-medium text-slate-900">{sourceStat.source}</td>
-                        <td className="py-3 px-4 text-slate-600">{sourceStat.totalVisits.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-slate-600">{sourceStat.totalConversions.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-slate-600 font-semibold text-emerald-600">
-                          R$ {sourceStat.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">
-                          {sourceStat.totalConversions > 0 
-                            ? `R$ ${(sourceStat.totalRevenue / sourceStat.totalConversions).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                            : 'R$ 0,00'
-                          }
-                        </td>
-                      </tr>
-                    ))
-                  })()}
-                </tbody>
-              </table>
+      {/* Paginação */}
+      {pagination.pages > 1 && (
+        <div className="flex items-center justify-between mt-6">
+          <div className="text-sm text-slate-600">
+            Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total} registros
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+              className="flex items-center px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Anterior
+            </button>
+            
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                const pageNum = i + 1
+                if (pagination.pages <= 5) {
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                        pageNum === pagination.page
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-slate-500 bg-white border border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                }
+                return null
+              })}
             </div>
-          </CardContent>
-        </Card>
+
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.pages}
+              className="flex items-center px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Próximo
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Lista de Tracking */}
+      {/* Tabela de Conversões Detalhadas */}
       <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle className="text-slate-900">
-            Dados de Tracking ({pagination.total} total)
+            Conversões Detalhadas ({conversionsPagination.total} total)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -374,50 +359,29 @@ export default function AdminCampaigns() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200">
+                  <th className="text-left py-3 px-4 font-medium text-slate-900">Usuário</th>
                   <th className="text-left py-3 px-4 font-medium text-slate-900">Fonte</th>
                   <th className="text-left py-3 px-4 font-medium text-slate-900">Campanha</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-900">Usuário</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-900">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-slate-900">Valor</th>
                   <th className="text-left py-3 px-4 font-medium text-slate-900">Data</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-900">IP</th>
                 </tr>
               </thead>
               <tbody>
-                {trackingData.map((tracking) => (
-                  <tr key={tracking.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                {detailedConversions.map((conv) => (
+                  <tr key={conv.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                     <td className="py-3 px-4">
-                      <span className="font-medium text-slate-900">{tracking.source}</span>
+                      <div>
+                        <div className="font-medium text-slate-900">{conv.User.name || 'Sem nome'}</div>
+                        <div className="text-sm text-slate-500">{conv.User.email}</div>
+                      </div>
                     </td>
-                    <td className="py-3 px-4 text-slate-600">{tracking.campaign}</td>
-                    <td className="py-3 px-4">
-                      {tracking.User ? (
-                        <div>
-                          <div className="font-medium text-slate-900">{tracking.User.name || 'Sem nome'}</div>
-                          <div className="text-sm text-slate-500">{tracking.User.email}</div>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400">Não convertido</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {tracking.converted ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
-                          Convertido
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800">
-                          Visitante
-                        </span>
-                      )}
+                    <td className="py-3 px-4 text-slate-600">{conv.source}</td>
+                    <td className="py-3 px-4 text-slate-600">{conv.campaign}</td>
+                    <td className="py-3 px-4 text-slate-600 font-medium">
+                      {formatCurrency(conv.amount)}
                     </td>
                     <td className="py-3 px-4 text-slate-600">
-                      {tracking.createdAt 
-                        ? new Date(tracking.createdAt).toLocaleDateString('pt-BR')
-                        : 'N/A'
-                      }
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      {tracking.ipAddress || 'N/A'}
+                      {new Date(conv.convertedAt).toLocaleString('pt-BR')}
                     </td>
                   </tr>
                 ))}
@@ -425,47 +389,23 @@ export default function AdminCampaigns() {
             </table>
           </div>
 
-          {/* Paginação */}
-          {pagination.pages > 1 && (
+          {conversionsPagination.pages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <div className="text-sm text-slate-600">
-                Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total} registros
+                Mostrando {((conversionsPagination.page - 1) * conversionsPagination.limit) + 1} a {Math.min(conversionsPagination.page * conversionsPagination.limit, conversionsPagination.total)} de {conversionsPagination.total} registros
               </div>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={!pagination.hasPrev}
+                  onClick={() => handlePageChange(conversionsPagination.page - 1)}
+                  disabled={conversionsPagination.page <= 1}
                   className="flex items-center px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Anterior
                 </button>
-                
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-                    const pageNum = i + 1
-                    if (pagination.pages <= 5) {
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`px-3 py-2 text-sm font-medium rounded-lg ${
-                            pageNum === pagination.page
-                              ? 'bg-indigo-600 text-white'
-                              : 'text-slate-500 bg-white border border-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      )
-                    }
-                    return null
-                  })}
-                </div>
-
                 <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={!pagination.hasNext}
+                  onClick={() => handlePageChange(conversionsPagination.page + 1)}
+                  disabled={conversionsPagination.page >= conversionsPagination.pages}
                   className="flex items-center px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Próximo

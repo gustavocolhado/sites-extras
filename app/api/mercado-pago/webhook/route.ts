@@ -319,10 +319,43 @@ export async function POST(request: Request) {
           paymentId: paymentId
         });
 
-        // Processar conversão de campanha se existir
+        // Processar conversão de campanha se existir (para campanhas de marketing)
+        if (paymentSession.source && paymentSession.campaign && payment) {
+          try {
+            // Verificar se já existe uma conversão para este usuário e campanha
+            const existingCampaignConversion = await prisma.campaignConversion.findFirst({
+              where: {
+                userId: user.id,
+                source: paymentSession.source,
+                campaign: paymentSession.campaign,
+              },
+            });
+
+            if (!existingCampaignConversion) {
+              // Registrar conversão da campanha
+              await prisma.campaignConversion.create({
+                data: {
+                  userId: user.id,
+                  source: paymentSession.source,
+                  campaign: paymentSession.campaign,
+                  planId: paymentSession.plan,
+                  amount: paymentSession.amount,
+                  convertedAt: new Date(),
+                },
+              });
+              console.log(`🎉 CONVERSÃO DE CAMPANHA REGISTRADA: ${user.email} - ${paymentSession.plan} - R$ ${paymentSession.amount} - Source: ${paymentSession.source}, Campaign: ${paymentSession.campaign}`);
+            } else {
+              console.log(`✅ Conversão de campanha já registrada para o usuário ${user.id} na campanha ${paymentSession.campaign}.`);
+            }
+          } catch (campaignError) {
+            console.error('❌ Erro ao registrar conversão de campanha:', campaignError);
+          }
+        }
+
+        // Processar conversão de campanha de email se existir
         if (paymentSession.campaignId && payment) {
           try {
-            // Registrar conversão da campanha
+            // Registrar conversão da campanha de email
             await prisma.emailCampaignConversion.create({
               data: {
                 campaignId: paymentSession.campaignId,
@@ -333,7 +366,7 @@ export async function POST(request: Request) {
               }
             });
 
-            // Atualizar contador de conversões na campanha
+            // Atualizar contador de conversões na campanha de email
             await prisma.emailCampaign.update({
               where: { id: paymentSession.campaignId },
               data: {
@@ -343,103 +376,12 @@ export async function POST(request: Request) {
               }
             });
 
-            console.log(`🎉 CONVERSÃO DE CAMPANHA REGISTRADA: ${user.email} - ${paymentSession.plan} - R$ ${paymentSession.amount} - Campanha: ${paymentSession.campaignId}`);
-          } catch (campaignError) {
-            console.error('❌ Erro ao registrar conversão de campanha:', campaignError);
+            console.log(`🎉 CONVERSÃO DE CAMPANHA DE EMAIL REGISTRADA: ${user.email} - ${paymentSession.plan} - R$ ${paymentSession.amount} - Campanha de Email: ${paymentSession.campaignId}`);
+          } catch (emailCampaignError) {
+            console.error('❌ Erro ao registrar conversão de campanha de email:', emailCampaignError);
           }
         }
 
-        // Processar tracking CPA se aplicável
-        try {
-          console.log('🎯 Verificando tracking CPA para MercadoPago...');
-          
-          // Buscar tracking CPA ativo para este usuário
-          const cpaTrackingData = await prisma.campaignTracking.findFirst({
-            where: {
-              userId: user.id,
-              converted: false,
-              source: {
-                startsWith: 'cpa'
-              }
-            },
-            orderBy: {
-              timestamp: 'desc'
-            }
-          });
-
-          if (cpaTrackingData) {
-            console.log('🎯 Tracking CPA encontrado para MercadoPago:', cpaTrackingData);
-            
-            // Marcar como convertido
-            await prisma.campaignTracking.update({
-              where: { id: cpaTrackingData.id },
-              data: {
-                converted: true,
-                convertedAt: new Date()
-              }
-            });
-
-            // Enviar postback para TrafficStars
-            const postbackUrl = new URL('https://tsyndicate.com/api/v1/cpa/action');
-            
-            // Converter valor de reais para dólares
-            const exchangeRate = getExchangeRate();
-            const valueInDollars = convertReaisToDollars(paymentSession.amount, exchangeRate);
-            
-            console.log('💰 Conversão de moeda para postback:', {
-              valorOriginalBRL: paymentSession.amount,
-              taxaCambio: exchangeRate,
-              valorConvertidoUSD: valueInDollars
-            });
-            
-            postbackUrl.searchParams.set('value', valueInDollars.toString());
-            postbackUrl.searchParams.set('clickid', (cpaTrackingData as any).clickId || '');
-            postbackUrl.searchParams.set('key', 'GODOiGyqwq6r1PxUDZTPjkyoyTeocItpUE7K');
-            postbackUrl.searchParams.set('goalid', (cpaTrackingData as any).goalId || '0');
-            
-            // Adicionar lead_code se disponível
-            if ((cpaTrackingData as any).leadCode) {
-              postbackUrl.searchParams.set('lead_code', (cpaTrackingData as any).leadCode);
-            }
-
-            console.log('🎯 Enviando postback CPA para TrafficStars (MercadoPago):', postbackUrl.toString());
-
-            try {
-              const postbackResponse = await fetch(postbackUrl.toString(), {
-                method: 'GET',
-                headers: {
-                  'User-Agent': 'CPA-Tracking-MercadoPago/1.0'
-                }
-              });
-
-              if (postbackResponse.ok) {
-                const responseText = await postbackResponse.text();
-                console.log('✅ Postback CPA enviado com sucesso para TrafficStars (MercadoPago)');
-                console.log('📄 Resposta do TrafficStars:', responseText);
-              } else {
-                const errorText = await postbackResponse.text();
-                console.error('❌ Erro ao enviar postback CPA para TrafficStars (MercadoPago):', postbackResponse.status);
-                console.error('📄 Erro detalhado:', errorText);
-                console.error('🔗 URL do postback:', postbackUrl.toString());
-                console.error('📊 Parâmetros:', {
-                  value: valueInDollars.toString(),
-                  valueOriginalBRL: paymentSession.amount.toString(),
-                  clickid: (cpaTrackingData as any).clickId || '',
-                  key: 'GODOiGyqwq6r1PxUDZTPjkyoyTeocItpUE7K',
-                  goalid: (cpaTrackingData as any).goalId || '0',
-                  lead_code: (cpaTrackingData as any).leadCode
-                });
-              }
-            } catch (postbackError) {
-              console.error('❌ Erro ao enviar postback CPA para TrafficStars (MercadoPago):', postbackError);
-              console.error('🔗 URL do postback:', postbackUrl.toString());
-            }
-          } else {
-            console.log('ℹ️ Nenhum tracking CPA encontrado para MercadoPago');
-          }
-        } catch (cpaError) {
-          console.error('❌ Erro ao processar tracking CPA (MercadoPago):', cpaError);
-        }
       } else {
         console.warn('❌ Nenhum usuário encontrado com o userId:', paymentSession.userId);
       }

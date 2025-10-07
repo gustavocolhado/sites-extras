@@ -155,6 +155,7 @@ model User {
   promotionCode String?
   signupSource  String?  // Adicionando o campo signupSource
   tempPassword  Boolean  @default(false) // Flag para senha temporária
+  needsPasswordChange Boolean? @default(false) // Flag para forçar a mudança de senha
   acceptPromotionalEmails Boolean @default(true) // Aceita receber emails promocionais
   acceptTermsOfUse Boolean @default(false) // Aceita os termos de uso
   lastEmailSent DateTime? // Data do último email promocional enviado
@@ -177,7 +178,6 @@ model User {
   referredUsers Affiliate[] @relation("ReferredUsers") // Relacionamento com usuários indicados
   withdrawalRequests WithdrawalRequest[] @relation("WithdrawalAffiliate")
   promotions  Promotion[]  // Um usuário pode ter várias promoções
-  campaignTracking CampaignTracking[] // Relacionamento com tracking de campanhas
   campaignConversions CampaignConversion[] // Relacionamento com conversões de campanhas
   paymentSessions PaymentSession[] // Relacionamento com sessões de pagamento
   affiliateSessions PaymentSession[] @relation("AffiliateSessions") // Relacionamento com sessões de pagamento como afiliado
@@ -275,7 +275,9 @@ model PaymentSession {
   duration     Int?     // Duração em dias
   promotionCode String? // Código de promoção se aplicável
   affiliateId  String?  @db.ObjectId // ID do afiliado se aplicável
-  campaignId   String?  // ID da campanha se aplicável
+  campaignId   String?  // ID da campanha se aplicável (para email marketing)
+  source       String?  // Fonte da campanha (ex: cbr-01)
+  campaign     String?  // Nome da campanha (ex: teste)
   
   // Relacionamentos
   user         User     @relation(fields: [userId], references: [id])
@@ -318,36 +320,17 @@ model UserHistory {
   @@unique([userId, videoId]) // Garante que cada combinação de userId e videoId seja única
 }
 
+// Modelo otimizado para contagem de visitas, evitando registros duplicados.
 model CampaignTracking {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  source      String   // Fonte da campanha (ex: pornocarioca.com)
-  campaign    String   // Nome da campanha (ex: xclickads)
-  timestamp   DateTime @default(now())
-  userAgent   String   // User agent do navegador
-  referrer    String   // URL de referência
-  utm_source  String?  // UTM source
-  utm_medium  String?  // UTM medium
-  utm_campaign String? // UTM campaign
-  utm_term    String?  // UTM term
-  utm_content String?  // UTM content
-  ipAddress   String   // IP do usuário
-  pageUrl     String   // URL da página
-  clickId     String?  // ID do clique para CPA tracking
-  goalId      String?  // ID do objetivo para CPA tracking
-  value       String?  // Valor para CPA tracking
-  price       String?  // Preço para CPA tracking
-  leadCode    String?  // Código do lead para CPA tracking
-  converted   Boolean  @default(false) // Se converteu em assinatura
-  convertedAt DateTime? // Quando converteu
-  userId      String?  @db.ObjectId // ID do usuário se convertido
-  User        User?    @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  source     String   // Fonte da campanha (ex: pornocarioca.com)
+  campaign   String   // Nome da campanha (ex: xclickads)
+  visitCount Int      @default(0) // Contador de visitas
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  @@index([source, campaign])
-  @@index([timestamp])
-  @@index([converted])
-  @@index([clickId])
+  // Garante que cada combinação de source/campaign seja única.
+  @@unique([source, campaign])
   @@map("campaign_tracking")
 }
 

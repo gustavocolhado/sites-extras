@@ -1,113 +1,66 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
+  console.log('🚨 Requisição POST para /api/campaigns/track recebida no servidor.');
   try {
-    const body = await request.json()
-    
-    const {
-      source,
-      campaign,
-      timestamp,
-      userAgent,
-      referrer,
-      utm_source,
-      utm_medium,
-      utm_campaign,
-      utm_term,
-      utm_content,
-      clickId,
-      goalId,
-      value,
-      price,
-      leadCode,
-      trackingId,
-      pageUrl,
-      ipAddress
-    } = body
+    const { source, campaign } = await request.json();
 
-    // Validar dados obrigatórios
+    console.log('API /api/campaigns/track recebida:', { source, campaign });
+
     if (!source || !campaign) {
+      console.error('Erro 400: Parâmetros "source" e "campaign" são obrigatórios.');
       return NextResponse.json(
-        { error: 'Dados obrigatórios não fornecidos' },
+        { error: 'Os parâmetros "source" e "campaign" são obrigatórios.' },
         { status: 400 }
-      )
+      );
     }
 
-    // Salvar dados da campanha no banco
-    const campaignData = await prisma.campaignTracking.create({
-      data: {
-        source,
-        campaign,
-        timestamp: timestamp ? new Date(timestamp) : new Date(),
-        userAgent: userAgent || '',
-        referrer: referrer || '',
-        utm_source: utm_source || null,
-        utm_medium: utm_medium || null,
-        utm_campaign: utm_campaign || null,
-        utm_term: utm_term || null,
-        utm_content: utm_content || null,
-        ipAddress: ipAddress || request.headers.get('x-forwarded-for') || 
-                   request.headers.get('x-real-ip') || 
-                   'unknown',
-        pageUrl: pageUrl || request.headers.get('referer') || 'unknown',
-        clickId: clickId || null,
-        goalId: goalId || null,
-        value: value || null,
-        price: price || null,
-        leadCode: leadCode || null
+    try {
+      let trackingResult;
+      const existingTracking = await prisma.campaignTracking.findUnique({
+        where: {
+          source_campaign: {
+            source: source,
+            campaign: campaign,
+          },
+        },
+      });
+
+      if (existingTracking) {
+        trackingResult = await prisma.campaignTracking.update({
+          where: {
+            id: existingTracking.id,
+          },
+          data: {
+            visitCount: existingTracking.visitCount + 1,
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        trackingResult = await prisma.campaignTracking.create({
+          data: {
+            source: source,
+            campaign: campaign,
+            visitCount: 1,
+          },
+        });
       }
-    })
 
-    console.log('📊 Campanha registrada:', {
-      id: campaignData.id,
-      source,
-      campaign,
-      timestamp: campaignData.timestamp
-    })
-
-    return NextResponse.json({
-      success: true,
-      message: 'Dados da campanha salvos com sucesso',
-      campaignId: campaignData.id
-    })
-
-  } catch (error) {
-    console.error('❌ Erro ao salvar dados da campanha:', error)
-    
+      console.log('✅ Tracking de campanha atualizado/criado com sucesso:', trackingResult);
+      return NextResponse.json({ success: true, data: trackingResult });
+    } catch (prismaError: any) {
+      console.error('❌ Erro no Prisma ao rastrear visita de campanha:', prismaError);
+      return NextResponse.json(
+        { error: 'Erro no banco de dados ao rastrear visita de campanha', details: prismaError.message },
+        { status: 500 }
+      );
+    }
+  } catch (error: any) {
+    console.error('❌ Erro geral ao processar requisição de rastreamento de campanha:', error);
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: 'Erro interno do servidor ao processar requisição de rastreamento de campanha', details: error.message },
       { status: 500 }
-    )
+    );
   }
 }
-
-export async function GET() {
-  try {
-    // Buscar estatísticas das campanhas
-    const stats = await prisma.campaignTracking.groupBy({
-      by: ['source', 'campaign'],
-      _count: {
-        id: true
-      },
-      orderBy: {
-        _count: {
-          id: 'desc'
-        }
-      }
-    })
-
-    return NextResponse.json({
-      success: true,
-      stats
-    })
-
-  } catch (error) {
-    console.error('❌ Erro ao buscar estatísticas:', error)
-    
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
-  }
-} 

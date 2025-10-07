@@ -10,9 +10,10 @@ interface AuthContextType {
   signIn: (provider: string, credentials?: any) => Promise<any>
   signOut: () => Promise<any>
   isPremium: boolean
-  openAuthModal: () => void
+  openAuthModal: (mode?: 'login' | 'signup') => void
   closeAuthModal: () => void
   isAuthModalOpen: boolean
+  initialAuthMode: 'login' | 'signup'
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -21,6 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const [isPremium, setIsPremium] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [initialAuthMode, setInitialAuthMode] = useState<'login' | 'signup'>('signup');
+
 
   useEffect(() => {
     if (session?.user) {
@@ -55,7 +58,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return await signOut({ redirect: false })
   }
 
-  const openAuthModal = () => setIsAuthModalOpen(true)
+  const openAuthModal = (mode: 'login' | 'signup' = 'signup') => {
+    setInitialAuthMode(mode);
+    setIsAuthModalOpen(true);
+  }
   const closeAuthModal = () => setIsAuthModalOpen(false)
 
   const value = {
@@ -67,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     openAuthModal,
     closeAuthModal,
     isAuthModalOpen,
+    initialAuthMode,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -78,4 +85,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
-} 
+}

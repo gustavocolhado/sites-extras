@@ -122,6 +122,8 @@ export async function POST(request: NextRequest) {
         amount: value / 100, // Converter de centavos para reais
         userId: user.id,
         status: 'pending',
+        source: referralData?.source || null, // Adicionar source
+        campaign: referralData?.campaign || null, // Adicionar campaign
       },
     })
 
@@ -266,6 +268,12 @@ export async function POST(request: NextRequest) {
 
       response = await pushinResponse.json()
       
+      // Log detalhado para depuração
+      console.log('--- RESPOSTA COMPLETA PUSHINPAY ---')
+      console.log(JSON.stringify(response, null, 2))
+      console.log('------------------------------------')
+
+      // Manter o log antigo para consistência
       console.log('📊 Resposta do Pushin Pay:', response)
 
       // Verificar se os dados necessários estão presentes
@@ -349,4 +357,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

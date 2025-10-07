@@ -63,40 +63,36 @@ export async function POST(request: NextRequest) {
           const pushinPayData = await pushinPayResponse.json()
           console.log('✅ Status PIX PushinPay:', pushinPayData)
           
-          // Verificar se o pagamento foi confirmado
+          // Se o pagamento foi confirmado pela API da PushinPay
           if (pushinPayData.status === 'paid') {
-            // Buscar PaymentSession para obter dados do usuário
+            // Buscar PaymentSession para obter dados do usuário e do plano
             const paymentSession = await prisma.paymentSession.findFirst({
               where: {
-                preferenceId: pixId
+                OR: [
+                  { preferenceId: pixId },
+                  { preferenceId: pixId.toUpperCase() },
+                  { preferenceId: pixId.toLowerCase() }
+                ]
               },
               orderBy: { updatedAt: 'desc' }
             })
 
             if (paymentSession) {
-              // Buscar pagamento relacionado
-              payment = await prisma.payment.findFirst({
-                where: {
-                  preferenceId: paymentSession.preferenceId
-                }
+              // Verificar se já existe um registro de pagamento para evitar duplicatas
+              const existingPayment = await prisma.payment.findFirst({
+                where: { preferenceId: paymentSession.preferenceId }
               })
 
-              // Se não existe pagamento, mas o PIX foi pago, criar o registro e ativar premium
-              if (!payment && pushinPayData.status === 'paid') {
-                // Calcular data de expiração
+              if (!existingPayment) {
+                // Lógica para ativar o premium e criar o registro de pagamento
                 const expireDate = new Date()
                 expireDate.setDate(expireDate.getDate() + getPlanDurationInDays(paymentSession.plan))
 
-                // Atualizar PaymentSession
                 await prisma.paymentSession.update({
                   where: { id: paymentSession.id },
-                  data: {
-                    status: 'paid',
-                    updatedAt: new Date()
-                  }
+                  data: { status: 'paid', updatedAt: new Date() }
                 })
 
-                // Ativar premium no usuário
                 await prisma.user.update({
                   where: { id: paymentSession.userId },
                   data: {
@@ -107,8 +103,7 @@ export async function POST(request: NextRequest) {
                   }
                 })
 
-                // Criar registro de pagamento
-                payment = await prisma.payment.create({
+                await prisma.payment.create({
                   data: {
                     userId: paymentSession.userId,
                     plan: paymentSession.plan,
@@ -120,14 +115,22 @@ export async function POST(request: NextRequest) {
                     duration: getPlanDurationInDays(paymentSession.plan)
                   }
                 })
-                console.log('✅ Payment criado e premium ativado após confirmação PushinPay')
+                console.log('✅ Premium ativado e Payment criado via confirmação da API PushinPay.')
               }
             }
+            // Retorna sucesso imediatamente
+            return NextResponse.json({ paid: true, status: 'paid', message: 'Pagamento confirmado!' })
+          } else {
+            // Se o status não for 'paid' (ex: 'created'), significa que o PIX existe mas aguarda pagamento.
+            console.log('⏳ PIX encontrado, mas aguardando pagamento (status:', pushinPayData.status, ')')
+            return NextResponse.json({ paid: false, status: pushinPayData.status, message: 'Aguardando pagamento.' })
           }
         } else if (pushinPayResponse.status === 404) {
           console.log('❌ PIX não encontrado na PushinPay:', pixId)
+          // Continua para o fallback
         } else {
           console.error('❌ Erro ao consultar PushinPay:', pushinPayResponse.status)
+          // Continua para o fallback
         }
       } catch (error) {
         console.error('❌ Erro ao consultar PushinPay:', error)
@@ -317,4 +320,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

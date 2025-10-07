@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import AgeVerificationModal from './AgeVerificationModal'
 
 interface AgeVerificationWrapperProps {
@@ -10,8 +11,16 @@ interface AgeVerificationWrapperProps {
 export default function AgeVerificationWrapper({ children }: AgeVerificationWrapperProps) {
   const [isAgeVerified, setIsAgeVerified] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const pathname = usePathname()
 
   useEffect(() => {
+    // Se estiver na página da campanha, pular a verificação
+    if (pathname === '/c') {
+      setIsAgeVerified(true)
+      setIsLoading(false)
+      return
+    }
+
     // Verificar se o usuário já confirmou a idade
     const hasConfirmedAge = localStorage.getItem('ageConfirmed')
     
@@ -20,7 +29,7 @@ export default function AgeVerificationWrapper({ children }: AgeVerificationWrap
     }
     
     setIsLoading(false)
-  }, [])
+  }, [pathname])
 
   const handleAgeConfirm = () => {
     setIsAgeVerified(true)

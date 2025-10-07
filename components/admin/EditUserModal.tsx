@@ -1,19 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Save, Eye, EyeOff, Calendar, User, Mail, Shield, Crown, ChevronDown } from 'lucide-react'
+import { X, Save, Eye, EyeOff, Calendar, User as UserIcon, Mail, Shield, Crown, ChevronDown } from 'lucide-react' // Renomear User para UserIcon
 import { useTheme } from '@/contexts/ThemeContext'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  premium: boolean
-  access: number
-  expireDate?: string
-  created_at: string
-  update_at: string
-}
+import { User } from '@/types/common' // Importar a interface User de types/common
 
 interface EditUserModalProps {
   user: User | null
@@ -105,7 +95,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSave }: EditUse
         <div className={`flex items-center justify-between p-6 border-b ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
+              <UserIcon className="w-5 h-5 text-white" />
             </div>
             <div>
               <h2 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Editar Usuário</h2>
@@ -134,7 +124,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSave }: EditUse
               Nome
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
               <input
                 type="text"
                 value={formData.name}

@@ -199,20 +199,51 @@ async function activatePremiumAccessViaWebhook(pixId: string, statusData: Webhoo
       console.log('ℹ️ Payment já existe com este paymentId, ignorando criação:', existingPayment.id)
     }
 
-    console.log('Acesso premium ativado via webhook:', {
-      userId: paymentSession.userId,
-      email: paymentSession.userEmail,
-      plan: paymentSession.plan,
-      expireDate: expireDate,
-      pixId: pixId
-    })
+      console.log('Acesso premium ativado via webhook:', {
+        userId: paymentSession.userId,
+        email: paymentSession.userEmail,
+        plan: paymentSession.plan,
+        expireDate: expireDate,
+        pixId: pixId
+      })
 
-    return true
-  } catch (error) {
-    console.error('Erro ao ativar acesso premium via webhook:', error)
-    return false
+      // Registrar conversão de campanha se source e campaign estiverem presentes
+      if (paymentSession.source && paymentSession.campaign && paymentSession.user) {
+        try {
+          const existingCampaignConversion = await prisma.campaignConversion.findFirst({
+            where: {
+              userId: paymentSession.user.id,
+              source: paymentSession.source,
+              campaign: paymentSession.campaign,
+            },
+          });
+
+          if (!existingCampaignConversion) {
+            await prisma.campaignConversion.create({
+              data: {
+                userId: paymentSession.user.id,
+                source: paymentSession.source,
+                campaign: paymentSession.campaign,
+                planId: paymentSession.plan,
+                amount: paymentSession.amount,
+                convertedAt: new Date(),
+              },
+            });
+            console.log(`🎉 CONVERSÃO DE CAMPANHA REGISTRADA (Pushin Pay): ${paymentSession.user.email} - ${paymentSession.plan} - R$ ${paymentSession.amount} - Source: ${paymentSession.source}, Campaign: ${paymentSession.campaign}`);
+          } else {
+            console.log(`✅ Conversão de campanha já registrada (Pushin Pay) para o usuário ${paymentSession.user.id} na campanha ${paymentSession.campaign}.`);
+          }
+        } catch (campaignError) {
+          console.error('❌ Erro ao registrar conversão de campanha (Pushin Pay):', campaignError);
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Erro ao ativar acesso premium via webhook:', error)
+      return false
+    }
   }
-}
 
 export async function POST(request: NextRequest) {
   try {

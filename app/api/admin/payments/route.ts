@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || ''
     const endDate = searchParams.get('endDate') || ''
     const status = searchParams.get('status') || 'all'
+    const plan = searchParams.get('plan') || 'all'
     const showDuplicates = searchParams.get('showDuplicates') === 'true'
 
     const skip = (page - 1) * limit
@@ -45,6 +46,11 @@ export async function GET(request: NextRequest) {
     // Filtro por status
     if (status !== 'all') {
       where.status = status
+    }
+
+    // Filtro por plano
+    if (plan !== 'all') {
+      where.plan = plan
     }
 
     // Buscar pagamentos

@@ -59,38 +59,32 @@ export async function POST(request: NextRequest) {
     })
 
     // Registrar tracking da campanha se houver dados
-    if (referralData) {
+    if (referralData && referralData.source && referralData.campaign) {
       try {
-        await prisma.campaignTracking.create({
-          data: {
-            source: referralData.source || 'landing_page',
-            campaign: referralData.campaign || 'direct',
-            timestamp: new Date(),
-            userAgent: 'landing_page',
-            referrer: referralData.referrer || 'direct',
-            utm_source: referralData.utm_source || null,
-            utm_medium: referralData.utm_medium || null,
-            utm_campaign: referralData.utm_campaign || null,
-            utm_term: referralData.utm_term || null,
-            utm_content: referralData.utm_content || null,
-            ipAddress: 'landing_page',
-            pageUrl: 'landing_page',
-            clickId: referralData.clickId || null,
-            goalId: referralData.goalId || null,
-            value: referralData.value || null,
-            price: referralData.price || null,
-            leadCode: referralData.leadCode || null,
-            userId: user.id, // Vincular ao usuário criado
-          }
-        })
-        console.log('✅ Tracking registrado para usuário:', { 
-          userId: user.id, 
+        await prisma.campaignTracking.upsert({
+          where: {
+            source_campaign: {
+              source: referralData.source,
+              campaign: referralData.campaign,
+            },
+          },
+          update: {
+            visitCount: {
+              increment: 1,
+            },
+          },
+          create: {
+            source: referralData.source,
+            campaign: referralData.campaign,
+            visitCount: 1,
+          },
+        });
+        console.log('📈 Visita de Landing Page registrada:', { 
           source: referralData.source,
-          clickId: referralData.clickId,
           campaign: referralData.campaign
-        })
+        });
       } catch (error) {
-        console.error('❌ Erro ao registrar tracking:', error)
+        console.error('❌ Erro ao registrar tracking da Landing Page:', error);
       }
     }
 
@@ -115,4 +109,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

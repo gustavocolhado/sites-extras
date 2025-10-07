@@ -11,6 +11,7 @@ declare module 'next-auth' {
       premium: boolean
       expireDate?: Date | null
       access: number
+      needsPasswordChange?: boolean
     }
   }
 
@@ -23,6 +24,7 @@ declare module 'next-auth' {
     premium: boolean
     expireDate?: Date | null
     access: number
+    needsPasswordChange?: boolean
   }
 }
 
@@ -37,4 +39,4 @@ declare module 'next-auth/jwt' {
     accessToken?: string
     access: number
   }
-} 
+}

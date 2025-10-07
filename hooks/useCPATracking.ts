@@ -14,12 +14,16 @@ interface CPATrackingData {
   leadCode: string | null
 }
 
+const TRACKING_COOLDOWN_MINUTES = 5; // Cooldown para evitar múltiplas visitas em um curto período
+
 export function useCPATracking() {
+  console.log('✨ useCPATracking hook montado/re-renderizado.');
   const searchParams = useSearchParams()
   const [trackingData, setTrackingData] = useState<CPATrackingData | null>(null)
   const [isCPASource, setIsCPASource] = useState(false)
 
   useEffect(() => {
+    console.log('🔄 useEffect em useCPATracking disparado.')
     const source = searchParams.get('source')
     const campaign = searchParams.get('campaign')
     const clickId = searchParams.get('clickid')
@@ -40,11 +44,11 @@ export function useCPATracking() {
 
     // Verificar se é uma fonte CPA
     const isCPA = source?.startsWith('cpa')
-    
+
     if (isCPA) {
       console.log('✅ Fonte CPA detectada!')
       console.log('📊 ClickId capturado:', clickId)
-      
+
       setTrackingData({
         source,
         campaign,
@@ -55,35 +59,60 @@ export function useCPATracking() {
         leadCode
       })
       setIsCPASource(true)
-      
-      // Salvar dados de tracking no localStorage para uso posterior
-      localStorage.setItem('cpa_tracking', JSON.stringify({
-        source,
-        campaign,
-        clickId,
-        goalId,
-        value,
-        price,
-        leadCode,
-        timestamp: new Date().toISOString()
-      }))
-      
-      // Salvar dados de tracking no banco de dados para uso posterior
-      saveCPATrackingToDatabase({
-        source,
-        campaign,
-        clickId,
-        goalId,
-        value,
-        price,
-        leadCode
-      })
-      
-      console.log('💾 Dados salvos no localStorage e banco de dados')
+
+      // Usar localStorage para um controle mais robusto de tracking por campanha
+      const campaignTrackingKey = `cpa_tracked_${source}_${campaign}`
+      const lastTracked = localStorage.getItem(campaignTrackingKey)
+      const currentTime = new Date().getTime()
+
+      let shouldTrack = true;
+      if (lastTracked) {
+        const lastTrackedTime = parseInt(lastTracked, 10);
+        const cooldownEndTime = lastTrackedTime + (TRACKING_COOLDOWN_MINUTES * 60 * 1000);
+        if (currentTime < cooldownEndTime) {
+          shouldTrack = false;
+          console.log(`ℹ️ Tracking CPA para '${source}_${campaign}' ignorado. Cooldown ativo. Próximo rastreamento em: ${new Date(cooldownEndTime).toLocaleTimeString()}`);
+        } else {
+          console.log(`✅ Cooldown para '${source}_${campaign}' expirado. Pronto para rastrear novamente.`);
+        }
+      }
+
+      if (shouldTrack) {
+        console.log('🚀 Iniciando novo rastreamento de CPA...')
+        // Salvar dados de tracking no localStorage para uso posterior (persistente)
+        localStorage.setItem('cpa_tracking', JSON.stringify({
+          source,
+          campaign,
+          clickId,
+          goalId,
+          value,
+          price,
+          leadCode,
+          timestamp: new Date().toISOString()
+        }))
+
+        // Marcar que o tracking foi salvo, com timestamp
+        localStorage.setItem(campaignTrackingKey, currentTime.toString())
+
+        // Salvar dados de tracking no banco de dados
+        saveCPATrackingToDatabase({
+          source,
+          campaign,
+          clickId,
+          goalId,
+          value,
+          price,
+          leadCode
+        })
+
+        console.log('💾 Dados salvos no localStorage e banco de dados')
+      } else {
+        console.log('ℹ️ Tracking CPA já registrado recentemente para esta campanha. Ignorando chamada duplicada.')
+      }
     } else {
       console.log('❌ Não é uma fonte CPA')
     }
-  }, [searchParams])
+  }, [searchParams]) // Dependência de searchParams para reavaliar se a URL mudar
 
   const saveCPATrackingToDatabase = async (data: {
     source: string | null
@@ -96,10 +125,7 @@ export function useCPATracking() {
   }) => {
     try {
       console.log('💾 Salvando tracking CPA no banco de dados...')
-      
-      // Criar um ID único para o tracking
-      const trackingId = `cpa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
+
       const response = await fetch('/api/campaigns/track', {
         method: 'POST',
         headers: {
@@ -113,7 +139,6 @@ export function useCPATracking() {
           value: data.value,
           price: data.price,
           leadCode: data.leadCode,
-          trackingId,
           userAgent: navigator.userAgent,
           referrer: document.referrer,
           pageUrl: window.location.href,

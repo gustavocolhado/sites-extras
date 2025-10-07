@@ -44,6 +44,13 @@ export default function VideoCard({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const router = useRouter()
   const isPremium = useIsPremium()
+
+  // Função para formatar o título
+  const formatTitle = (title: string) => {
+    if (!title) return ''
+    const lowercasedTitle = title.toLowerCase()
+    return lowercasedTitle.charAt(0).toUpperCase() + lowercasedTitle.slice(1)
+  }
   
   // Fechar menu de contexto com tecla Escape
   useEffect(() => {
@@ -216,7 +223,7 @@ export default function VideoCard({
         }}
       />
       
-      <div className="relative aspect-video theme-card overflow-hidden">
+      <div className="relative aspect-video theme-card overflow-hidden w-full min-h-36">
         {/* Trailer (se iframe e mouse sobre) */}
         {showTrailer && isIframe && trailerUrl && (
           <div className="absolute inset-0 z-10">
@@ -338,7 +345,7 @@ export default function VideoCard({
         }`}
         itemProp="name"
       >
-        {title}
+        {formatTitle(title)}
         {premium && !isPremium && (
           <span className="inline-flex items-center ml-2 text-yellow-500">
             <Lock className="w-3 h-3 mr-1" aria-hidden="true" />
@@ -409,4 +416,4 @@ export default function VideoCard({
       )}
     </article>
   )
-} 
+}

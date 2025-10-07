@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 
 interface UseVideoActionsProps {
@@ -84,21 +84,26 @@ export function useVideoActions({ videoId }: UseVideoActionsProps) {
     }
   }
 
-  const recordView = async (watchDuration?: number) => {
-    if (!session?.user) return
-
+  const recordView = useCallback(async (watchDuration?: number): Promise<number | null> => {
     try {
-      await fetch(`/api/videos/${videoId}/history`, {
+      // A rota agora usa [slug], mas o videoId passado para o hook é o slug.
+      const response = await fetch(`/api/videos/${videoId}/history`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ watchDuration }),
       })
+      if (response.ok) {
+        const data = await response.json()
+        return data.viewCount
+      }
+      return null
     } catch (error) {
       console.error('Erro ao registrar visualização:', error)
+      return null
     }
-  }
+  }, [videoId])
 
   return {
     isLiked,
@@ -108,4 +113,4 @@ export function useVideoActions({ videoId }: UseVideoActionsProps) {
     toggleFavorite,
     recordView,
   }
-} 
+}

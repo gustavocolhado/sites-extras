@@ -161,6 +161,37 @@ export async function POST(req: Request) {
               expireDate 
             });
 
+            // Registrar conversão de campanha se source e campaign estiverem presentes
+            if (source && campaign) {
+              try {
+                const existingCampaignConversion = await prisma.campaignConversion.findFirst({
+                  where: {
+                    userId: user.id,
+                    source: source,
+                    campaign: campaign,
+                  },
+                });
+
+                if (!existingCampaignConversion) {
+                  await prisma.campaignConversion.create({
+                    data: {
+                      userId: user.id,
+                      source: source,
+                      campaign: campaign,
+                      planId: finalPlan,
+                      amount: parseFloat(amount),
+                      convertedAt: new Date(),
+                    },
+                  });
+                  console.log(`🎉 CONVERSÃO DE CAMPANHA REGISTRADA (Stripe Landing Page): ${email} - ${finalPlan} - R$ ${amount} - Source: ${source}, Campaign: ${campaign}`);
+                } else {
+                  console.log(`✅ Conversão de campanha já registrada (Stripe Landing Page) para o usuário ${user.id} na campanha ${campaign}.`);
+                }
+              } catch (campaignError) {
+                console.error('❌ Erro ao registrar conversão de campanha (Stripe Landing Page):', campaignError);
+              }
+            }
+
             return NextResponse.json({ 
               message: 'Pagamento da Landing Page processado com sucesso',
               userId: user.id 
@@ -290,6 +321,37 @@ export async function POST(req: Request) {
             });
 
             console.log(`✅ Usuário ${userId} atualizado para premium com expiração em ${expireDate}`);
+
+            // Registrar conversão de campanha se source e campaign estiverem presentes na PaymentSession
+            if (paymentSession.source && paymentSession.campaign) {
+              try {
+                const existingCampaignConversion = await prisma.campaignConversion.findFirst({
+                  where: {
+                    userId: paymentSession.userId,
+                    source: paymentSession.source,
+                    campaign: paymentSession.campaign,
+                  },
+                });
+
+                if (!existingCampaignConversion) {
+                  await prisma.campaignConversion.create({
+                    data: {
+                      userId: paymentSession.userId,
+                      source: paymentSession.source,
+                      campaign: paymentSession.campaign,
+                      planId: paymentSession.plan,
+                      amount: paymentSession.amount,
+                      convertedAt: new Date(),
+                    },
+                  });
+                  console.log(`🎉 CONVERSÃO DE CAMPANHA REGISTRADA (Stripe Normal): ${session.customer_email} - ${paymentSession.plan} - R$ ${paymentSession.amount} - Source: ${paymentSession.source}, Campaign: ${paymentSession.campaign}`);
+                } else {
+                  console.log(`✅ Conversão de campanha já registrada (Stripe Normal) para o usuário ${paymentSession.userId} na campanha ${paymentSession.campaign}.`);
+                }
+              } catch (campaignError) {
+                console.error('❌ Erro ao registrar conversão de campanha (Stripe Normal):', campaignError);
+              }
+            }
           }
         } else {
           console.error('Metadata is null or undefined');

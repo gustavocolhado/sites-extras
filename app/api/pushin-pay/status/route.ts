@@ -81,9 +81,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Fazer requisição para a API da PushinPay para consultar o status
-    console.log('📡 Fazendo requisição para PushinPay:', `https://api.pushinpay.com.br/api/pix/${pixId}`)
+    const uppercasePixId = pixId.toUpperCase();
+    console.log('📡 Fazendo requisição para PushinPay:', `https://api.pushinpay.com.br/api/transactions/${uppercasePixId}`)
     
-    const response = await fetch(`https://api.pushinpay.com.br/api/pix/${pixId}`, {
+    const response = await fetch(`https://api.pushinpay.com.br/api/transactions/${uppercasePixId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${paymentSettings.pushinpay.accessToken}`,

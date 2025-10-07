@@ -164,46 +164,6 @@ export default function VideosPage() {
     setCurrentPage(1) // Reset para primeira página ao buscar
   }
 
-  if (loading) {
-    return (
-      <>
-        <SEOHead
-          title="Vídeos - CORNOS BRASIL"
-          description="Assista videos porno amador, videos de corno, porno brasileiro. Os melhores videos porno grátis no CORNOS BRASIL."
-          keywords={[
-            'videos porno',
-            'porno amador',
-            'videos de corno',
-            'cornos brasil',
-            'videos porno grátis',
-            'porno brasileiro'
-          ]}
-          canonical="https://cornosbrasil.com/videos"
-        />
-        <Layout>
-          <Header />
-          <main className="min-h-screen bg-gray-50">
-            <Section background="white" padding="lg">
-              <div className="animate-pulse">
-                <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-1">
-                  {[...Array(50)].map((_, index) => (
-                    <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
-                      <div className="aspect-video bg-gray-200"></div>
-                      <div className="p-3">
-                        <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                        <div className="h-2 bg-gray-200 rounded w-3/4"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Section>
-          </main>
-        </Layout>
-      </>
-    )
-  }
 
   if (error) {
     return (
@@ -344,14 +304,6 @@ export default function VideosPage() {
             </div>
 
             {/* Loading overlay para mudança de página */}
-            {pageLoading && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent-red"></div>
-                  <span className="text-theme-primary font-medium">Carregando vídeos...</span>
-                </div>
-              </div>
-            )}
 
             {/* Grid de vídeos */}
             {filteredVideos.length === 0 ? (
@@ -433,4 +385,4 @@ export default function VideosPage() {
       </Layout>
     </>
   )
-} 
+}
