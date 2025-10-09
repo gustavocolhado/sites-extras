@@ -227,13 +227,9 @@ export default function VideoCard({
         {/* Trailer (se iframe e mouse sobre) */}
         {showTrailer && isIframe && trailerUrl && (
           <div className="absolute inset-0 z-10">
-            <video
+            <img
               src={trailerUrl}
               className="w-full h-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
               style={{
                 pointerEvents: 'none' // Desabilita interações com o vídeo
               }}
