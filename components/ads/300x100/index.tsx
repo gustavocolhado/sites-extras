@@ -5,8 +5,8 @@ import AdIcon from '../AdIcon';
 
 const AdIframe300x100 = () => {
   const [randomNumber, setRandomNumber] = useState<number | null>(null);
-  const [iframeId, setIframeId] = useState<string>('afbe831b'); // Valor padrão
-  const [iframeName, setIframeName] = useState<string>('afbe831b'); // Valor padrão
+  const [iframeId, setIframeId] = useState<string>('af42c904'); // Valor padrão
+  const [iframeName, setIframeName] = useState<string>('af42c904'); // Valor padrão
   const [iframeZoneId, setIframeZoneId] = useState<string>('1'); // Valor padrão
 
   // Mapeamento de domínios para id, name e zoneid
@@ -14,7 +14,7 @@ const AdIframe300x100 = () => {
     'cornofilmando.com': { id: 'ae67cb37', name: 'ae67cb37', zoneid: '5' },
     'cornomanso.com.br': { id: 'adb32b21', name: 'adb32b21', zoneid: '8' },
     'cornoplay.com': { id: 'a472e6c4', name: 'a472e6c4', zoneid: '11' },
-    'cornosbrasil.com': { id: 'afbe831b', name: 'afbe831b', zoneid: '1' },
+    'cornosbrasil.com': { id: 'af42c904', name: 'af42c904', zoneid: '1' },
     'cornostv.com': { id: 'a8119852', name: 'a8119852', zoneid: '14' },
     'cornosvip.com': { id: 'acfe4b83', name: 'acfe4b83', zoneid: '17' },
     'cornotube.com': { id: 'a74bfac6', name: 'a74bfac6', zoneid: '20' },
@@ -37,8 +37,8 @@ const AdIframe300x100 = () => {
     const hostname = window.location.hostname;
 
     // Procurar configuração correspondente ao domínio
-    let newId = 'afbe831b'; // Valor padrão
-    let newName = 'afbe831b'; // Valor padrão
+    let newId = 'af42c904'; // Valor padrão
+    let newName = 'af42c904'; // Valor padrão
     let newZoneId = '1'; // Valor padrão
 
     // Verificar se o domínio ou subdomínio está no mapeamento
