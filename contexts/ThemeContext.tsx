@@ -23,9 +23,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (savedTheme) {
         setTheme(savedTheme)
       } else {
-        // Verificar preferência do sistema
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        setTheme(prefersDark ? 'dark' : 'light')
+        // Definir dark como padrão, ignorando a preferência do sistema
+        setTheme('dark')
       }
     }
   }, [])
@@ -56,4 +55,4 @@ export function useTheme() {
     throw new Error('useTheme must be used within a ThemeProvider')
   }
   return context
-} 
+}

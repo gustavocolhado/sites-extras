@@ -623,7 +623,7 @@ export default function VideoJSPlayer({
   const shouldUseIframe = getVideoType(videoUrl) === 'iframe'
 
   return (
-    <div className={`relative ${className} px-2 h-80 md:h-full`}>
+    <div className={`relative w-full ${className} px-2 h-80 md:h-[880px] bg-black`}>
       {/* Loading Overlay removido - vídeo carrega direto */}
 
       {/* Iframe para embeds */}
