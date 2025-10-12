@@ -623,17 +623,17 @@ export default function VideoJSPlayer({
   const shouldUseIframe = getVideoType(videoUrl) === 'iframe'
 
   return (
-    <div className={`relative ${className} h-80 md:h-full`}>
+    <div className={`relative ${className} px-2 h-80 md:h-full`}>
       {/* Loading Overlay removido - vídeo carrega direto */}
 
       {/* Iframe para embeds */}
       {shouldUseIframe ? (
         <iframe
           src={videoUrl}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover bg-black"
           frameBorder="0"
           allowFullScreen
-          allow="autoplay; fullscreen; picture-in-picture"
+          allow="fullscreen; picture-in-picture"
           title={title || 'Vídeo'}
         />
       ) : (
