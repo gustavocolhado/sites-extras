@@ -2,22 +2,46 @@
 
 import { useState, useEffect } from 'react'
 import { QrCode, Copy, Check, Clock, AlertCircle } from 'lucide-react'
+import QRCode from 'react-qr-code'; // Importa a biblioteca react-qr-code
 
 interface PixPaymentProps {
-  preferenceId: string
+  userId?: string // Tornar opcional se preferenceId for fornecido
+  amount?: number // Tornar opcional se preferenceId for fornecido
+  payerEmail?: string // Tornar opcional se preferenceId for fornecido
+  paymentType?: string // Tornar opcional se preferenceId for fornecido
+  payerCpf?: string // Tornar opcional se preferenceId for fornecido
+  payerName?: string // Tornar opcional se preferenceId for fornecido
+  paymentProvider?: 'mercadopago' | 'efipay' // Tornar opcional se preferenceId for fornecido
+  preferenceId?: string // Adicionar preferenceId
   onSuccess: () => void
   onCancel: () => void
 }
 
 interface PixData {
-  qr_code: string
-  qr_code_base64: string
-  expires_at: string
-  payment_id?: string
-  provider?: string
+  qr_code?: string // Mercado Pago
+  qr_code_base64?: string // Mercado Pago
+  expires_at?: string // Mercado Pago
+  payment_id?: string // Mercado Pago
+  pixCopiaECola?: string // Efí
+  txid?: string // Efí
+  qrCodeUrl?: string // Efí (URL para o QR Code)
+  status?: string // Efí
+  loc?: { id: number; location: string; tipoCob: string; } // Efí (para o ID do location do QR Code)
+  provider: 'mercadopago' | 'efipay'
 }
 
-export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPaymentProps) {
+export default function PixPayment({
+  userId,
+  amount,
+  payerEmail,
+  paymentType,
+  payerCpf,
+  payerName,
+  paymentProvider,
+  preferenceId, // Adicionado preferenceId
+  onSuccess,
+  onCancel
+}: PixPaymentProps) {
   const [pixData, setPixData] = useState<PixData | null>(null)
   const [copied, setCopied] = useState(false)
   const [timeLeft, setTimeLeft] = useState<number>(0)
@@ -29,48 +53,81 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
   useEffect(() => {
     const fetchPixData = async () => {
       try {
-        console.log('🎯 PixPayment - Iniciando busca de dados PIX para preferenceId:', preferenceId)
-        
-        const response = await fetch('/api/premium/create-pix', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ preferenceId }),
-        })
+        let response;
+        let data;
+        let currentPaymentProvider: 'mercadopago' | 'efipay' | undefined = paymentProvider;
 
-        if (!response.ok) {
-          throw new Error('Erro ao gerar PIX')
+        if (preferenceId) {
+          console.log('🎯 PixPayment - Buscando detalhes da preferência do Mercado Pago:', preferenceId)
+          response = await fetch(`/api/mercado-pago/preference-details?preferenceId=${preferenceId}`)
+          if (!response.ok) {
+            throw new Error('Erro ao buscar detalhes da preferência do Mercado Pago')
+          }
+          data = await response.json()
+          currentPaymentProvider = 'mercadopago'; // Assumimos Mercado Pago se preferenceId for usado
+          console.log('📊 Detalhes da preferência recebidos:', data)
+
+          // Extrair dados do PIX do objeto de preferência
+          const pixPayment = data.payments?.find((p: any) => p.payment_type === 'pix')
+          if (pixPayment) {
+            setPixData({
+              qr_code: pixPayment.point_of_interaction?.transaction_data?.qr_code,
+              qr_code_base64: pixPayment.point_of_interaction?.transaction_data?.qr_code_base64,
+              expires_at: pixPayment.date_of_expiration,
+              payment_id: pixPayment.id,
+              provider: 'mercadopago'
+            })
+            // Calcular tempo restante
+            if (pixPayment.date_of_expiration) {
+              const expiresAt = new Date(pixPayment.date_of_expiration).getTime()
+              const now = Date.now()
+              const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000))
+              setTimeLeft(remaining)
+            }
+          } else {
+            throw new Error('Nenhum pagamento PIX encontrado na preferência.')
+          }
+
+        } else if (userId && amount && payerEmail && paymentType && payerCpf && payerName && paymentProvider) {
+          console.log('🎯 PixPayment - Iniciando busca de dados PIX para provider:', paymentProvider)
+          if (paymentProvider === 'mercadopago') {
+            response = await fetch('/api/mercado-pago', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId, amount, payerEmail, paymentType, payerCpf, payerName }),
+            })
+          } else if (paymentProvider === 'efipay') {
+            response = await fetch('/api/efi-pay', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId, amount, payerEmail, paymentType, payerCpf, payerName }),
+            })
+          } else {
+            throw new Error('Provedor de pagamento não suportado.')
+          }
+
+          if (!response.ok) {
+            throw new Error('Erro ao gerar PIX')
+          }
+
+          data = await response.json()
+          console.log('📊 Dados PIX recebidos:', data)
+          
+          data.provider = currentPaymentProvider;
+          setPixData(data)
+          
+          if (currentPaymentProvider === 'mercadopago' && data.expires_at) {
+            const expiresAt = new Date(data.expires_at).getTime()
+            const now = Date.now()
+            const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000))
+            setTimeLeft(remaining)
+          } else if (currentPaymentProvider === 'efipay') {
+            setTimeLeft(3600); 
+          }
+        } else {
+          throw new Error('Dados insuficientes para gerar ou buscar PIX. Forneça preferenceId ou todos os dados de pagamento.')
         }
 
-        const data = await response.json()
-        console.log('📊 Dados PIX recebidos:', data)
-        console.log('🔍 Verificando campos do QR Code:', {
-          hasQRCode: !!data.qr_code,
-          hasQRCodeBase64: !!data.qr_code_base64,
-          qrCodeLength: data.qr_code?.length,
-          qrCodeBase64Length: data.qr_code_base64?.length,
-          qrCodeType: typeof data.qr_code,
-          qrCodeBase64Type: typeof data.qr_code_base64,
-          provider: data.provider,
-          qrCodeBase64Start: data.qr_code_base64?.substring(0, 50) + '...',
-          fullData: data
-        })
-        setPixData(data)
-        
-        // Log quando pixData é definido
-        console.log('🎯 PixPayment - Dados definidos:', {
-          hasQRCode: !!data.qr_code,
-          hasQRCodeBase64: !!data.qr_code_base64,
-          qrCodeBase64Length: data.qr_code_base64?.length,
-          provider: data.provider
-        })
-        
-        // Calcular tempo restante
-        const expiresAt = new Date(data.expires_at).getTime()
-        const now = Date.now()
-        const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000))
-        setTimeLeft(remaining)
       } catch (err) {
         console.error('❌ Erro ao buscar dados PIX:', err)
         setError(err instanceof Error ? err.message : 'Erro desconhecido')
@@ -80,96 +137,26 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
     }
 
     fetchPixData()
-  }, [preferenceId])
+  }, [userId, amount, payerEmail, paymentType, payerCpf, payerName, paymentProvider, preferenceId])
 
-  // Verificar status do pagamento
+
+  // Reagir a mudanças no paymentStatus para redirecionar
   useEffect(() => {
-    if (!preferenceId || paymentStatus !== 'pending') return
-
-    let checkCount = 0
-    const maxChecks = 60 // Máximo 5 minutos (60 * 5 segundos)
-
-    const checkPaymentStatus = async () => {
-      try {
-        console.log(`🔍 Verificando status do pagamento (tentativa ${checkCount + 1}/${maxChecks})`)
-        console.log(`🔍 PreferenceId sendo verificado:`, preferenceId)
-        
-        // Primeiro, verificar o status do pagamento específico
-        const paymentResponse = await fetch('/api/premium/check-payment-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ preferenceId }),
-        })
-
-        if (paymentResponse.ok) {
-          const paymentData = await paymentResponse.json()
-          console.log('📊 Status do pagamento:', paymentData)
-          
-          if (paymentData.status === 'approved' || paymentData.status === 'paid') {
-            console.log('✅ Pagamento aprovado! Redirecionando...')
-            setPaymentStatus('approved')
-            setTimeout(() => {
-              // Redirecionar para a página de sucesso com o payment_id
-              window.location.href = `/premium/success?payment_id=${pixData?.payment_id || preferenceId}`
-            }, 2000)
-            return
-          } else if (paymentData.status === 'rejected' || paymentData.status === 'cancelled') {
-            console.log('❌ Pagamento rejeitado')
-            setPaymentStatus('rejected')
-            return
-          } else {
-            console.log('⏳ Pagamento ainda pendente:', paymentData.status)
-          }
-        } else {
-          console.log('❌ Erro na resposta da API de verificação:', paymentResponse.status)
-        }
-
-        // Como fallback, verificar o status premium do usuário
-        // Mas só considerar se o pagamento específico foi processado
-        const userResponse = await fetch('/api/premium/check-user-status')
-        if (userResponse.ok) {
-          const userData = await userResponse.json()
-          console.log('👤 Status do usuário:', userData)
-          
-          // Só considerar aprovado se o usuário tem premium E o pagamento foi processado recentemente
-          if (userData.isActive && userData.paymentDate) {
-            const paymentDate = new Date(userData.paymentDate)
-            const now = new Date()
-            const timeDiff = now.getTime() - paymentDate.getTime()
-            const minutesDiff = timeDiff / (1000 * 60)
-            
-            // Só considerar se o pagamento foi feito nos últimos 10 minutos
-            if (minutesDiff < 10) {
-              console.log('✅ Usuário tem premium ativo e pagamento recente! Redirecionando...')
-              setPaymentStatus('approved')
-              setTimeout(() => {
-                // Redirecionar para a página de sucesso com o payment_id
-                window.location.href = `/premium/success?payment_id=${pixData?.payment_id || preferenceId}`
-              }, 2000)
-              return
-            }
-          }
-        }
-        
-        checkCount++
-        if (checkCount >= maxChecks) {
-          console.log('⏰ Tempo limite de verificação atingido')
-          return
-        }
-      } catch (error) {
-        console.error('Erro ao verificar status:', error)
-        checkCount++
-      }
+    if (paymentStatus === 'approved') {
+      console.log('✅ Pagamento aprovado! Redirecionando...')
+      // O redirecionamento agora deve ser acionado pelo webhook, não pelo polling do frontend.
+      // Este useEffect pode ser removido ou adaptado para reagir a um estado global/contexto
+      // que seria atualizado pelo webhook. Por enquanto, vamos manter o redirecionamento
+      // para a página de sucesso, que deve verificar o status final.
+      setTimeout(() => {
+        window.location.href = `/premium/success?payment_id=${pixData?.payment_id || pixData?.txid}`
+      }, 2000)
+    } else if (paymentStatus === 'rejected') {
+      console.log('❌ Pagamento rejeitado')
+      // Não redireciona, apenas exibe a mensagem de rejeição
     }
+  }, [paymentStatus, pixData])
 
-    // Verificar imediatamente e depois a cada 5 segundos
-    checkPaymentStatus()
-    const interval = setInterval(checkPaymentStatus, 5000)
-    
-    return () => clearInterval(interval)
-  }, [preferenceId, paymentStatus, onSuccess])
 
   // Atualizar contador regressivo
   useEffect(() => {
@@ -189,10 +176,11 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
   }, [timeLeft])
 
   const copyPixCode = async () => {
-    if (!pixData?.qr_code) return
+    const codeToCopy = pixData?.provider === 'efipay' ? pixData.pixCopiaECola : pixData?.qr_code;
+    if (!codeToCopy) return
 
     try {
-      await navigator.clipboard.writeText(pixData.qr_code)
+      await navigator.clipboard.writeText(codeToCopy)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
@@ -306,42 +294,49 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
           {(() => {
             console.log('🎨 Renderizando QR Code:', {
+              provider: pixData.provider,
               hasQRCodeBase64: !!pixData.qr_code_base64,
+              hasQrCodeUrl: !!pixData.qrCodeUrl,
               qrCodeBase64Length: pixData.qr_code_base64?.length,
-              qrCodeBase64Start: pixData.qr_code_base64?.substring(0, 30) + '...'
+              qrCodeUrlLength: pixData.qrCodeUrl?.length,
+              pixCopiaEColaLength: pixData.pixCopiaECola?.length, // Adicionado para depuração
             })
-            
-                         if (pixData.qr_code_base64) {
-               // Verificar se o base64 já tem o prefixo data:image/png;base64,
-               const base64Data = pixData.qr_code_base64.startsWith('data:image/png;base64,') 
-                 ? pixData.qr_code_base64 
-                 : `data:image/png;base64,${pixData.qr_code_base64}`
-               
-               console.log('🔧 Base64 processado:', {
-                 original: pixData.qr_code_base64.substring(0, 50) + '...',
-                 processed: base64Data.substring(0, 50) + '...',
-                 hasPrefix: pixData.qr_code_base64.startsWith('data:image/png;base64,')
-               })
-               
-               return (
-                 <img
-                   src={base64Data}
-                   alt="QR Code PIX"
-                   className="w-56 h-56"
-                   onLoad={() => console.log('✅ QR Code carregado com sucesso')}
-                   onError={(e) => {
-                     console.error('❌ Erro ao carregar QR Code:', e)
-                     console.error('❌ Dados do QR Code:', {
-                       length: pixData.qr_code_base64?.length,
-                       start: pixData.qr_code_base64?.substring(0, 50),
-                       processedLength: base64Data?.length
-                     })
-                     e.currentTarget.style.display = 'none'
-                   }}
-                 />
-               )
-             } else {
-              console.log('❌ QR Code base64 não disponível')
+
+            // Para Mercado Pago, usa o base64
+            if (pixData.provider === 'mercadopago' && pixData.qr_code_base64) {
+              const imgSrc = pixData.qr_code_base64.startsWith('data:image/png;base64,')
+                ? pixData.qr_code_base64
+                : `data:image/png;base64,${pixData.qr_code_base64}`;
+              return (
+                <img
+                  src={imgSrc}
+                  alt="QR Code PIX Mercado Pago"
+                  className="w-56 h-56"
+                  onLoad={() => console.log('✅ QR Code Mercado Pago carregado com sucesso')}
+                  onError={(e) => {
+                    console.error('❌ Erro ao carregar QR Code Mercado Pago:', e)
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              )
+            } 
+            // Para Efí, gera o QR Code a partir do pixCopiaECola
+            else if (pixData.provider === 'efipay' && pixData.pixCopiaECola) {
+              console.log('🎨 Gerando QR Code Efí a partir de pixCopiaECola:', pixData.pixCopiaECola);
+              return (
+                <QRCode
+                  value={pixData.pixCopiaECola}
+                  size={224} // Tamanho do QR Code (224px para 56x56 Tailwind)
+                  level="H" // Nível de correção de erro (H = High)
+                  bgColor="#FFFFFF" // Cor de fundo (branco)
+                  fgColor="#000000" // Cor do QR Code (preto)
+                  className="w-56 h-56" // Classes Tailwind para o tamanho
+                />
+              )
+            }
+            // Se nenhum QR Code estiver disponível
+            else {
+              console.log('❌ QR Code não disponível para o provedor:', pixData.provider)
               return (
                 <div className="w-56 h-56 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
                   <p className="text-gray-500 dark:text-gray-400 text-center">
@@ -362,13 +357,13 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
         <div className="flex">
           <input
             type="text"
-            value={pixData.qr_code || 'Código PIX não disponível'}
+            value={pixData.provider === 'efipay' ? (pixData.pixCopiaECola || 'Código PIX não disponível') : (pixData.qr_code || 'Código PIX não disponível')}
             readOnly
             className="flex-1 px-4 py-3 border border-theme-border-primary rounded-l-xl bg-theme-hover text-sm font-mono text-theme-primary"
           />
           <button
             onClick={copyPixCode}
-            disabled={!pixData.qr_code}
+            disabled={!(pixData.provider === 'efipay' ? pixData.pixCopiaECola : pixData.qr_code)}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-r-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
@@ -380,7 +375,7 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
             <span className="font-medium">Código copiado!</span>
           </div>
         )}
-        {!pixData.qr_code && (
+        {!(pixData.provider === 'efipay' ? pixData.pixCopiaECola : pixData.qr_code) && (
           <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 text-sm mt-2">
             <AlertCircle className="w-4 h-4" />
             <span className="font-medium">Código PIX não foi gerado</span>
@@ -403,22 +398,6 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
         </div>
       </div>
 
-      {/* Status */}
-      <div className="text-center mb-8">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-          <div className="flex items-center justify-center space-x-3 text-blue-600 dark:text-blue-400">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 dark:border-blue-400"></div>
-            <span className="font-medium">Aguardando pagamento...</span>
-          </div>
-          <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
-            Verificando status automaticamente a cada 5 segundos
-          </p>
-          <div className="mt-3 text-xs text-blue-600 dark:text-blue-400">
-            <p>💡 <strong>Dica:</strong> Após fazer o pagamento, aguarde alguns segundos.</p>
-            <p>O sistema detectará automaticamente quando o pagamento for confirmado.</p>
-          </div>
-        </div>
-      </div>
 
       {/* Botão cancelar */}
       <div className="text-center">
@@ -431,4 +410,4 @@ export default function PixPayment({ preferenceId, onSuccess, onCancel }: PixPay
       </div>
     </div>
   )
-} 
+}

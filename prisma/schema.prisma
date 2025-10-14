@@ -22,7 +22,7 @@ model Video {
   description  String?
   description_en     String?  // Título em inglês
   description_es     String?  // Título em espanhol
-  url          String   @unique
+  url          String @unique
   url_en       String?  // Título em inglês
   url_es       String?  // Título em espanhol
   viewCount    Int
@@ -147,6 +147,8 @@ model User {
   paymentId     Int?
   preferenceId  String?
   paymentQrCodeUrl String?
+  paymentPixCopiaECola String? // Novo campo para Pix Copia e Cola da Efí
+  paymentTxid   String? // Novo campo para Txid da Efí
   paymentStatus String?
   paymentType   String?
   promotionId   String?
@@ -376,13 +378,20 @@ model ContentRemovalRequest {
 
 model PaymentSettings {
   id                        String   @id @default(auto()) @map("_id") @db.ObjectId
-  activeProvider            String   @default("mercadopago") // mercadopago, pushinpay
+  activeProvider            String   @default("mercadopago") // mercadopago, pushinpay, efipay
   mercadopagoEnabled        Boolean  @default(true)
   mercadopagoAccessToken    String?  // Access token do Mercado Pago
   mercadopagoWebhookUrl     String?  // URL do webhook do Mercado Pago
   pushinpayEnabled          Boolean  @default(false)
   pushinpayAccessToken      String?  // Access token do Pushin Pay
   pushinpayWebhookUrl       String?  // URL do webhook do Pushin Pay
+  efipayEnabled             Boolean  @default(false)
+  efipayClientId            String?  // Client ID da Efí Pay
+  efipayClientSecret        String?  // Client Secret da Efí Pay
+  efipayPixKey              String?  // Chave Pix da Efí Pay
+  efipayApiUrl              String?  @default("https://pix-h.api.efipay.com.br") // URL da API da Efí Pay
+  efipayCertPassword        String?  // Senha do certificado da Efí Pay
+  efipayWebhookUrl          String?  // URL do webhook da Efí Pay
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 

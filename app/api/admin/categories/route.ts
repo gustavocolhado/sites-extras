@@ -80,13 +80,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
     }
 
-    // Verificar se já existe uma categoria com este nome
-    const existingCategory = await prisma.category.findUnique({
-      where: { name }
+    // Gerar slug se não for fornecido
+    const categorySlug = slug || name.toLowerCase().replace(/\s+/g, '-')
+
+    // Verificar se já existe uma categoria com este nome ou slug
+    const existingCategory = await prisma.category.findFirst({
+      where: {
+        OR: [
+          { name: { equals: name, mode: 'insensitive' } },
+          { slug: { equals: categorySlug, mode: 'insensitive' } }
+        ]
+      }
     })
 
     if (existingCategory) {
-      return NextResponse.json({ error: 'Já existe uma categoria com este nome' }, { status: 400 })
+      if (existingCategory.name.toLowerCase() === name.toLowerCase()) {
+        return NextResponse.json({ error: 'Já existe uma categoria com este nome' }, { status: 400 })
+      }
+      // O slug é gerado a partir do nome, então se o nome for igual, o slug também será.
+      // Se o slug for fornecido explicitamente e for diferente, mas o nome for o mesmo,
+      // a verificação acima já teria pego.
+      // Se o slug for diferente e o nome também, então é uma categoria diferente.
+      // Apenas verificamos se o slug existente é igual ao categorySlug gerado/fornecido.
+      if (existingCategory.slug && existingCategory.slug.toLowerCase() === categorySlug.toLowerCase()) {
+        return NextResponse.json({ error: 'Já existe uma categoria com este slug' }, { status: 400 })
+      }
     }
 
     // Criar nova categoria

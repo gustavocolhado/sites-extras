@@ -21,6 +21,7 @@ import PixPayment from '@/components/PixPayment'
 import Footer from '@/components/Footer'
 import { useCountry } from '@/hooks/useCountry'
 import CurrencySelector from '@/components/CurrencySelector'
+import AuthModal from '@/components/AuthModal'
 
 
 interface Plan {
@@ -112,9 +113,14 @@ export default function PremiumPage() {
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [preferenceId, setPreferenceId] = useState<string | null>(null)
+  const [pixPaymentDetails, setPixPaymentDetails] = useState<any>(null) // Armazena os detalhes do PIX (qrCodeUrl, pixCopiaECola, txid, etc.)
   const [campaignData, setCampaignData] = useState<any>(null)
-  const [activePaymentProvider, setActivePaymentProvider] = useState<'mercadopago' | 'pushinpay'>('mercadopago')
+  const [activePaymentProvider, setActivePaymentProvider] = useState<'mercadopago' | 'efipay'>('mercadopago') // Atualizado para incluir 'efipay'
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [payerCpf, setPayerCpf] = useState<string>('');
+  const [payerName, setPayerName] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [showPayerDetailsForm, setShowPayerDetailsForm] = useState(false); // Novo estado para controlar a exibição do formulário
 
   // Capturar dados da campanha da URL
   useEffect(() => {
@@ -145,16 +151,11 @@ export default function PremiumPage() {
     }
   }, [])
 
-  // Redirecionar se não estiver autenticado
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/api/auth/signin')
-    }
-  }, [status, router])
 
-  // Buscar provedor de pagamento ativo
+  // Buscar provedor de pagamento ativo e dados do usuário
   useEffect(() => {
-    const fetchPaymentProvider = async () => {
+    const fetchData = async () => {
+      // Buscar provedor de pagamento ativo
       try {
         const response = await fetch('/api/admin/payment-settings')
         if (response.ok) {
@@ -164,15 +165,56 @@ export default function PremiumPage() {
       } catch (error) {
         console.error('Erro ao buscar provedor de pagamento:', error)
       }
+
+      // Buscar dados do usuário logado para CPF e Nome
+      if (session?.user?.id) {
+        try {
+          const userResponse = await fetch(`/api/user/${session.user.id}`) // Assumindo um endpoint para buscar dados do usuário
+          if (userResponse.ok) {
+            const userData = await userResponse.json()
+            setPayerCpf(userData.cpf || ''); // Assumindo que o CPF está no campo 'cpf'
+            setPayerName(userData.name || ''); // Assumindo que o nome está no campo 'name'
+            setUserEmail(userData.email || session?.user?.email || ''); // Assumindo que o email está no campo 'email'
+            
+            // Se CPF ou Nome estiverem faltando, mostrar o formulário
+            if (!userData.cpf || !userData.name) {
+              setShowPayerDetailsForm(true);
+            }
+          } else {
+            // Se não conseguir buscar dados do usuário, usar email da sessão e mostrar formulário para CPF/Nome
+            setUserEmail(session?.user?.email || '');
+            setShowPayerDetailsForm(true);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar dados do usuário:', error)
+          // Em caso de erro, usar email da sessão e mostrar formulário para CPF/Nome
+          setUserEmail(session?.user?.email || '');
+          setShowPayerDetailsForm(true);
+        }
+      } else {
+        // Se não houver sessão, garantir que o formulário não seja exibido inicialmente
+        setShowPayerDetailsForm(false);
+      }
     }
 
-    fetchPaymentProvider()
-  }, [])
+    fetchData()
+  }, [session]) // Dependência da sessão para buscar dados do usuário
 
   const handlePlanSelect = (plan: Plan) => {
+    if (!session) {
+      setIsAuthModalOpen(true)
+      return
+    }
     setSelectedPlan(plan)
     setPaymentMethod(null)
     setError(null)
+    setPixPaymentDetails(null); // Resetar detalhes do PIX ao selecionar novo plano
+  }
+
+  const handleAuthSuccess = () => {
+    setIsAuthModalOpen(false)
+    // Opcional: redirecionar ou recarregar a página para refletir o status de autenticação
+    router.refresh()
   }
 
   const handlePaymentMethodSelect = (method: 'pix' | 'card') => {
@@ -181,47 +223,94 @@ export default function PremiumPage() {
   }
 
   const createSubscription = async () => {
-    if (!selectedPlan || !paymentMethod) return
+    if (!selectedPlan || !paymentMethod) return;
 
-    setLoading(true)
-    setError(null)
+    // Validação adicional para PIX
+    if (paymentMethod === 'pix') {
+      if (!session?.user?.id) {
+        setError('Você precisa estar logado para fazer um pagamento PIX.');
+        return;
+      }
+      if (!userEmail || !payerCpf || !payerName) {
+        setError('Por favor, preencha seu e-mail, CPF e nome completo para o pagamento PIX.');
+        setShowPayerDetailsForm(true); // Força a exibição do formulário se os dados estiverem faltando
+        return;
+      }
+    }
+
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch('/api/premium/create-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          planId: selectedPlan.id,
-          paymentMethod: paymentMethod === 'pix' ? 'mercadopago' : 'stripe',
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao criar assinatura')
-      }
+      let response;
+      let data;
 
       if (paymentMethod === 'pix') {
-        setPreferenceId(data.preferenceId)
+        const pixBody = {
+          userId: session?.user?.id,
+          amount: selectedPlan.price,
+          payerEmail: userEmail, // Usar o email do usuário logado
+          paymentType: selectedPlan.id,
+          payerCpf: payerCpf,
+          payerName: payerName,
+        };
+
+        if (activePaymentProvider === 'mercadopago') {
+          response = await fetch('/api/mercado-pago', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pixBody),
+          });
+        } else if (activePaymentProvider === 'efipay') {
+          response = await fetch('/api/efi-pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pixBody),
+          });
+        } else {
+          throw new Error('Provedor de PIX não configurado ou não suportado.');
+        }
+
+        data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao gerar PIX');
+        }
+        setPixPaymentDetails({ ...data, provider: activePaymentProvider }); // Salvar todos os detalhes do PIX e o provedor
       } else if (paymentMethod === 'card') {
+        // Lógica existente para cartão de crédito (Stripe ou Pushin Pay)
+        response = await fetch('/api/premium/create-subscription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            planId: selectedPlan.id,
+            paymentMethod: 'stripe', // Ou 'pushinpay' dependendo da lógica
+          }),
+        });
+
+        data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao criar assinatura');
+        }
+
         // Registrar conversão para pagamentos com cartão
         if (selectedPlan && campaignData) {
-          registerConversion(selectedPlan.id, selectedPlan.price)
+          registerConversion(selectedPlan.id, selectedPlan.price);
         }
         // Redirecionar para checkout do Stripe
         if (data.checkoutUrl) {
-          window.location.href = data.checkoutUrl
+          window.location.href = data.checkoutUrl;
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido')
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Função para registrar conversão da campanha
   const registerConversion = async (planId: string, amount: number) => {
@@ -255,7 +344,7 @@ export default function PremiumPage() {
   }
 
   const handlePixCancel = () => {
-    setPreferenceId(null)
+    setPixPaymentDetails(null) // Resetar os detalhes do PIX
     setPaymentMethod(null)
   }
 
@@ -270,21 +359,25 @@ export default function PremiumPage() {
     )
   }
 
-  if (status === 'unauthenticated') {
-    return null
-  }
 
-  if (preferenceId && paymentMethod === 'pix') {
+  if (pixPaymentDetails && paymentMethod === 'pix') {
     return (
       <div className="min-h-screen bg-theme-primary">
         <Header />
         <div className="flex items-center justify-center p-4 pt-20">
           <PixPayment
-            preferenceId={preferenceId}
+            userId={session?.user?.id || ''}
+            amount={selectedPlan?.price || 0}
+            payerEmail={userEmail}
+            paymentType={selectedPlan?.id || ''}
+            payerCpf={payerCpf}
+            payerName={payerName}
+            paymentProvider={pixPaymentDetails.provider}
             onSuccess={handlePixSuccess}
             onCancel={handlePixCancel}
           />
         </div>
+        <Footer /> {/* Adicionar Footer aqui também */}
       </div>
     )
   }
@@ -439,7 +532,7 @@ export default function PremiumPage() {
                           <QrCode className={`w-5 h-5 ${paymentMethod === 'pix' ? 'text-white' : 'text-green-500'}`} />
                         </div>
                         <div className="text-left">
-                          <h5 className="font-bold text-theme-primary">PIX</h5>
+                          <h5 className="font-bold text-theme-primary">PIX ({activePaymentProvider === 'efipay' ? 'Efí' : 'Mercado Pago'})</h5>
                           <p className="text-theme-secondary text-sm">Pagamento instantâneo</p>
                         </div>
                       </div>
@@ -470,18 +563,69 @@ export default function PremiumPage() {
                     </button>
                   </div>
 
+                  {/* Formulário de detalhes do pagador para PIX */}
+                  {paymentMethod === 'pix' && showPayerDetailsForm && (
+                    <div className="bg-theme-hover border border-theme-border-primary rounded-xl p-6 mb-6">
+                      <h4 className="text-lg font-bold text-theme-primary mb-4">
+                        Detalhes do Pagador (PIX)
+                      </h4>
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="payerEmail" className="block text-sm font-medium text-theme-secondary mb-2">
+                            E-mail
+                          </label>
+                          <input
+                            type="email"
+                            id="payerEmail"
+                            value={userEmail}
+                            onChange={(e) => setUserEmail(e.target.value)}
+                            placeholder="seuemail@exemplo.com"
+                            className="w-full px-4 py-3 rounded-xl border border-theme-border-primary bg-theme-card text-theme-primary focus:ring-2 focus:ring-accent-red focus:border-transparent"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="payerCpf" className="block text-sm font-medium text-theme-secondary mb-2">
+                            CPF
+                          </label>
+                          <input
+                            type="text"
+                            id="payerCpf"
+                            value={payerCpf}
+                            onChange={(e) => setPayerCpf(e.target.value)}
+                            placeholder="000.000.000-00"
+                            className="w-full px-4 py-3 rounded-xl border border-theme-border-primary bg-theme-card text-theme-primary focus:ring-2 focus:ring-accent-red focus:border-transparent"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="payerName" className="block text-sm font-medium text-theme-secondary mb-2">
+                            Nome Completo
+                          </label>
+                          <input
+                            type="text"
+                            id="payerName"
+                            value={payerName}
+                            onChange={(e) => setPayerName(e.target.value)}
+                            placeholder="Seu Nome Completo"
+                            className="w-full px-4 py-3 rounded-xl border border-theme-border-primary bg-theme-card text-theme-primary focus:ring-2 focus:ring-accent-red focus:border-transparent"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {error && (
                     <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 mb-6">
                       <p className="text-red-500 text-sm">{error}</p>
                     </div>
                   )}
 
-                  {/* Aviso do Pushin Pay - Removido conforme solicitado */}
-
                   {paymentMethod && (
                     <button
                       onClick={createSubscription}
-                      disabled={loading}
+                      disabled={loading || (paymentMethod === 'pix' && showPayerDetailsForm && (!userEmail || !payerCpf || !payerName))}
                       className="w-full bg-accent-red hover:bg-accent-red-hover text-white py-4 px-8 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3"
                     >
                       {loading ? (
@@ -562,7 +706,12 @@ export default function PremiumPage() {
         </div>
       </div>
       <Footer />
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onAuthSuccess={handleAuthSuccess}
+      />
     </div>
   )
 }
-

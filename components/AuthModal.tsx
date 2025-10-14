@@ -9,11 +9,12 @@ import Image from 'next/image'
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
+  onAuthSuccess?: () => void // Adicionando a propriedade opcional
 }
 
-type AuthMode = 'login' | 'signup'
+type AuthMode = 'login' | 'signup' | 'forgotPassword'
 
-export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
   const { signIn, initialAuthMode } = useAuth()
   const [mode, setMode] = useState<AuthMode>(initialAuthMode)
   const [showPassword, setShowPassword] = useState(false)
@@ -23,6 +24,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     email: '',
     password: '',
   })
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState('')
+  const [forgotPasswordError, setForgotPasswordError] = useState('')
 
   const handleInputChange = (field: string, value: string) => {
     const normalizedValue = field === 'email' ? normalizeEmail(value) : value
@@ -71,11 +75,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           source: 'website'
         })
         
-        if (result?.error) {
-          setAuthError('Email ou senha incorretos.')
-        } else {
-          onClose()
-        }
+    if (result?.error) {
+      setAuthError('Email ou senha incorretos.')
+    } else {
+      onClose()
+      onAuthSuccess?.() // Chama onAuthSuccess se existir
+    }
       } else { // signup
         const response = await fetch('/api/auth/register', {
           method: 'POST',
@@ -106,6 +111,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             setAuthError('Conta criada, mas erro ao fazer login automático.')
           } else {
             onClose()
+            onAuthSuccess?.() // Chama onAuthSuccess se existir
           }
         }
       }
@@ -253,6 +259,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+          <div className="text-right mt-2">
+            <button type="button" onClick={() => { setMode('forgotPassword'); setAuthError(''); setForgotPasswordError(''); setForgotPasswordMessage(''); }} className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors">
+              Esqueceu a senha?
+            </button>
+          </div>
         </div>
         
         {authError && <p className="text-red-600 text-sm text-center font-medium py-2">{authError}</p>}
@@ -270,6 +281,74 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         Não tem uma conta?{' '}
         <button onClick={() => setMode('signup')} className="text-red-600 font-semibold hover:text-red-700 transition-colors">
           Cadastre-se
+        </button>
+      </p>
+    </>
+  )
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotPasswordError('')
+    setForgotPasswordMessage('')
+    setIsLoading(true)
+
+    try {
+      const normalizedEmail = normalizeEmail(forgotPasswordEmail)
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setForgotPasswordError(data.error || 'Erro ao solicitar recuperação de senha.')
+      } else {
+        setForgotPasswordMessage('Se um email válido foi fornecido, um link de recuperação de senha foi enviado para sua caixa de entrada.')
+        setForgotPasswordEmail('') // Limpa o campo de email
+      }
+    } catch (error) {
+      setForgotPasswordError('Ocorreu um erro. Tente novamente.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const renderForgotPasswordForm = () => (
+    <>
+      <h2 className="text-2xl font-bold text-center text-gray-900">Recuperar Senha</h2>
+      <p className="text-center text-gray-600 mb-8">Informe seu email para receber um link de recuperação.</p>
+      
+      <form onSubmit={handleForgotPasswordSubmit} className="space-y-5">
+        <div>
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
+          <input
+            type="email"
+            value={forgotPasswordEmail}
+            onChange={(e) => setForgotPasswordEmail(normalizeEmail(e.target.value))}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all duration-200 text-gray-900"
+            placeholder="seuemail@exemplo.com"
+            required
+          />
+        </div>
+        
+        {forgotPasswordError && <p className="text-red-600 text-sm text-center font-medium py-2">{forgotPasswordError}</p>}
+        {forgotPasswordMessage && <p className="text-green-600 text-sm text-center font-medium py-2">{forgotPasswordMessage}</p>}
+
+        <button 
+          type="submit" 
+          disabled={isLoading} 
+          className="w-full bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-all duration-300 ease-in-out disabled:bg-red-400 disabled:cursor-not-allowed transform hover:scale-[1.02] shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        >
+          {isLoading ? 'Enviando...' : 'Enviar Link de Recuperação'}
+        </button>
+      </form>
+      
+      <p className="text-center text-sm text-gray-600 mt-8">
+        Lembrou da senha?{' '}
+        <button onClick={() => { setMode('login'); setForgotPasswordError(''); setForgotPasswordMessage(''); }} className="text-red-600 font-semibold hover:text-red-700 transition-colors">
+          Fazer Login
         </button>
       </p>
     </>
@@ -293,7 +372,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <X size={22} />
           </button>
           
-          {mode === 'signup' ? renderSignupForm() : renderLoginForm()}
+          {mode === 'signup' ? renderSignupForm() : mode === 'login' ? renderLoginForm() : renderForgotPasswordForm()}
         </div>
       </div>
     </>

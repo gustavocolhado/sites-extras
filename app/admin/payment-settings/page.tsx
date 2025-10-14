@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 
 interface PaymentSettings {
-  activeProvider: 'mercadopago' | 'pushinpay'
+  activeProvider: 'mercadopago' | 'pushinpay' | 'efipay'
   mercadopago: {
     enabled: boolean
     accessToken: string
@@ -21,6 +21,15 @@ interface PaymentSettings {
   pushinpay: {
     enabled: boolean
     accessToken: string
+    webhookUrl: string
+  }
+  efipay: {
+    enabled: boolean
+    clientId: string
+    clientSecret: string
+    pixKey: string
+    apiUrl: string
+    certPassword?: string
     webhookUrl: string
   }
 }
@@ -36,6 +45,15 @@ export default function PaymentSettingsPage() {
     pushinpay: {
       enabled: false,
       accessToken: '',
+      webhookUrl: ''
+    },
+    efipay: {
+      enabled: false,
+      clientId: '',
+      clientSecret: '',
+      pixKey: '',
+      apiUrl: 'https://pix-h.api.efipay.com.br', // Default para homologação
+      certPassword: '',
       webhookUrl: ''
     }
   })
@@ -87,7 +105,7 @@ export default function PaymentSettingsPage() {
     }
   }
 
-  const handleProviderChange = (provider: 'mercadopago' | 'pushinpay') => {
+  const handleProviderChange = (provider: 'mercadopago' | 'pushinpay' | 'efipay') => {
     setSettings(prev => ({
       ...prev,
       activeProvider: provider,
@@ -98,6 +116,10 @@ export default function PaymentSettingsPage() {
       pushinpay: {
         ...prev.pushinpay,
         enabled: provider === 'pushinpay'
+      },
+      efipay: {
+        ...prev.efipay,
+        enabled: provider === 'efipay'
       }
     }))
   }
@@ -167,6 +189,17 @@ export default function PaymentSettingsPage() {
                   className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                 />
                 <span className="font-medium">Pushin Pay</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="provider"
+                  value="efipay"
+                  checked={settings.activeProvider === 'efipay'}
+                  onChange={() => handleProviderChange('efipay')}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                />
+                <span className="font-medium">Efí Pay</span>
               </label>
             </div>
           </div>
@@ -267,6 +300,113 @@ export default function PaymentSettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Configurações da Efí Pay */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Settings className="w-5 h-5" />
+              <span>Efí Pay</span>
+              {settings.activeProvider === 'efipay' && (
+                <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                  Ativo
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Client ID
+              </label>
+              <input
+                type="text"
+                value={settings.efipay.clientId}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  efipay: { ...prev.efipay, clientId: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Digite o Client ID da Efí"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Client Secret
+              </label>
+              <input
+                type="password"
+                value={settings.efipay.clientSecret}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  efipay: { ...prev.efipay, clientSecret: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Digite o Client Secret da Efí"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Chave Pix
+              </label>
+              <input
+                type="text"
+                value={settings.efipay.pixKey}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  efipay: { ...prev.efipay, pixKey: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Digite a chave Pix da Efí"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                API URL
+              </label>
+              <input
+                type="url"
+                value={settings.efipay.apiUrl}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  efipay: { ...prev.efipay, apiUrl: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="https://pix-h.api.efipay.com.br"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Senha do Certificado (se houver)
+              </label>
+              <input
+                type="password"
+                value={settings.efipay.certPassword}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  efipay: { ...prev.efipay, certPassword: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Digite a senha do certificado (opcional)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Webhook URL
+              </label>
+              <input
+                type="url"
+                value={settings.efipay.webhookUrl}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  efipay: { ...prev.efipay, webhookUrl: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="https://seudominio.com/api/efi-pay/webhook"
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -275,6 +415,12 @@ export default function PaymentSettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm text-gray-600">
+            <div className="flex items-start space-x-2">
+              <AlertCircle className="w-4 h-4 mt-0.5 text-yellow-500" />
+              <p>
+                <strong>Efí Pay:</strong> Certifique-se de que o arquivo `cert.pem` esteja localizado em `config/cert.pem` no seu projeto.
+              </p>
+            </div>
             <div className="flex items-start space-x-2">
               <AlertCircle className="w-4 h-4 mt-0.5 text-yellow-500" />
               <p>

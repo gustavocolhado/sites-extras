@@ -31,6 +31,15 @@ export async function GET() {
           enabled: false,
           accessToken: process.env.PUSHIN_PAY_ACCESS_TOKEN || '',
           webhookUrl: process.env.PUSHIN_PAY_WEBHOOK_URL || ''
+        },
+        efipay: {
+          enabled: false,
+          clientId: process.env.EFI_CLIENT_ID || '',
+          clientSecret: process.env.EFI_CLIENT_SECRET || '',
+          pixKey: process.env.EFI_PIX_KEY || '',
+          apiUrl: process.env.EFI_API_URL || 'https://pix-h.api.efipay.com.br',
+          certPassword: process.env.EFI_CERT_PASSWORD || '',
+          webhookUrl: process.env.EFI_WEBHOOK_URL || ''
         }
       })
     }
@@ -46,6 +55,15 @@ export async function GET() {
         enabled: settings.pushinpayEnabled,
         accessToken: settings.pushinpayAccessToken || '',
         webhookUrl: settings.pushinpayWebhookUrl || ''
+      },
+      efipay: {
+        enabled: settings.efipayEnabled,
+        clientId: settings.efipayClientId || '',
+        clientSecret: settings.efipayClientSecret || '',
+        pixKey: settings.efipayPixKey || '',
+        apiUrl: settings.efipayApiUrl || 'https://pix-h.api.efipay.com.br',
+        certPassword: settings.efipayCertPassword || '',
+        webhookUrl: settings.efipayWebhookUrl || ''
       }
     })
   } catch (error) {
@@ -70,10 +88,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { activeProvider, mercadopago, pushinpay } = body
+    const { activeProvider, mercadopago, pushinpay, efipay } = body
 
     // Validar dados
-    if (!activeProvider || !['mercadopago', 'pushinpay'].includes(activeProvider)) {
+    if (!activeProvider || !['mercadopago', 'pushinpay', 'efipay'].includes(activeProvider)) {
       return NextResponse.json(
         { error: 'Provedor inválido' },
         { status: 400 }
@@ -83,37 +101,37 @@ export async function PUT(request: NextRequest) {
     // Buscar configurações existentes ou criar novas
     let settings = await prisma.paymentSettings.findFirst()
     
+    const data = {
+      activeProvider,
+      mercadopagoEnabled: activeProvider === 'mercadopago',
+      mercadopagoAccessToken: mercadopago?.accessToken || '',
+      mercadopagoWebhookUrl: mercadopago?.webhookUrl || '',
+      pushinpayEnabled: activeProvider === 'pushinpay',
+      pushinpayAccessToken: pushinpay?.accessToken || '',
+      pushinpayWebhookUrl: pushinpay?.webhookUrl || '',
+      efipayEnabled: activeProvider === 'efipay',
+      efipayClientId: efipay?.clientId || '',
+      efipayClientSecret: efipay?.clientSecret || '',
+      efipayPixKey: efipay?.pixKey || '',
+      efipayApiUrl: efipay?.apiUrl || 'https://pix-h.api.efipay.com.br',
+      efipayCertPassword: efipay?.certPassword || '',
+      efipayWebhookUrl: efipay?.webhookUrl || ''
+    }
+
     if (!settings) {
-      settings = await prisma.paymentSettings.create({
-        data: {
-          activeProvider,
-          mercadopagoEnabled: activeProvider === 'mercadopago',
-          mercadopagoAccessToken: mercadopago.accessToken,
-          mercadopagoWebhookUrl: mercadopago.webhookUrl,
-          pushinpayEnabled: activeProvider === 'pushinpay',
-          pushinpayAccessToken: pushinpay.accessToken,
-          pushinpayWebhookUrl: pushinpay.webhookUrl,
-        }
-      })
+      settings = await prisma.paymentSettings.create({ data })
     } else {
       settings = await prisma.paymentSettings.update({
         where: { id: settings.id },
-        data: {
-          activeProvider,
-          mercadopagoEnabled: activeProvider === 'mercadopago',
-          mercadopagoAccessToken: mercadopago.accessToken,
-          mercadopagoWebhookUrl: mercadopago.webhookUrl,
-          pushinpayEnabled: activeProvider === 'pushinpay',
-          pushinpayAccessToken: pushinpay.accessToken,
-          pushinpayWebhookUrl: pushinpay.webhookUrl,
-        }
+        data,
       })
     }
 
     console.log('✅ Configurações de pagamento atualizadas:', {
       activeProvider: settings.activeProvider,
       mercadopagoEnabled: settings.mercadopagoEnabled,
-      pushinpayEnabled: settings.pushinpayEnabled
+      pushinpayEnabled: settings.pushinpayEnabled,
+      efipayEnabled: settings.efipayEnabled
     })
 
     return NextResponse.json({
@@ -129,6 +147,15 @@ export async function PUT(request: NextRequest) {
           enabled: settings.pushinpayEnabled,
           accessToken: settings.pushinpayAccessToken || '',
           webhookUrl: settings.pushinpayWebhookUrl || ''
+        },
+        efipay: {
+          enabled: settings.efipayEnabled,
+          clientId: settings.efipayClientId || '',
+          clientSecret: settings.efipayClientSecret || '',
+          pixKey: settings.efipayPixKey || '',
+          apiUrl: settings.efipayApiUrl || 'https://pix-h.api.efipay.com.br',
+          certPassword: settings.efipayCertPassword || '',
+          webhookUrl: settings.efipayWebhookUrl || ''
         }
       }
     })
