@@ -36,6 +36,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Parâmetros ausentes.' }, { status: 400 });
     }
 
+    console.log('Debug Efí - payerCpf recebido no backend:', payerCpf); // Adicionado para depuração
+
     // 1. Criar a cobrança imediata na Efí usando a SDK
     const chargePayload = {
       calendario: {

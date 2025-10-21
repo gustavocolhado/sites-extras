@@ -117,11 +117,10 @@ export default function PremiumPage() {
   const [campaignData, setCampaignData] = useState<any>(null)
   const [activePaymentProvider, setActivePaymentProvider] = useState<'mercadopago' | 'efipay'>('mercadopago') // Atualizado para incluir 'efipay'
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [payerCpf, setPayerCpf] = useState<string>('');
-  const [payerName, setPayerName] = useState<string>('');
-  const [userEmail, setUserEmail] = useState<string>('');
-  const [showPayerDetailsForm, setShowPayerDetailsForm] = useState(false); // Novo estado para controlar a exibição do formulário
-
+  const [payerCpf, setPayerCpf] = useState<string>('24722531099'); // CPF de teste válido (apenas números)
+  const [payerName, setPayerName] = useState<string>('Cliente Padrão'); // Nome padrão
+  const [userEmail, setUserEmail] = useState<string>(''); // Email será preenchido pela sessão
+  const [showPayerDetailsForm, setShowPayerDetailsForm] = useState(false); // Formulário não será exibido
   // Capturar dados da campanha da URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -160,43 +159,30 @@ export default function PremiumPage() {
         const response = await fetch('/api/admin/payment-settings')
         if (response.ok) {
           const data = await response.json()
-          setActivePaymentProvider(data.activeProvider)
+          if (data.activeProvider === 'mercadopago' || data.activeProvider === 'efipay') {
+            setActivePaymentProvider(data.activeProvider)
+          } else {
+            console.warn('Provedor de pagamento ativo retornado pelo backend é inválido:', data.activeProvider);
+            setActivePaymentProvider('mercadopago'); // Fallback para um provedor conhecido
+          }
+        } else {
+          console.error('Erro ao buscar provedor de pagamento:', response.status, response.statusText);
+          setActivePaymentProvider('mercadopago'); // Fallback em caso de erro na resposta
         }
       } catch (error) {
         console.error('Erro ao buscar provedor de pagamento:', error)
+        setActivePaymentProvider('mercadopago'); // Fallback em caso de erro de rede
       }
-
-      // Buscar dados do usuário logado para CPF e Nome
-      if (session?.user?.id) {
-        try {
-          const userResponse = await fetch(`/api/user/${session.user.id}`) // Assumindo um endpoint para buscar dados do usuário
-          if (userResponse.ok) {
-            const userData = await userResponse.json()
-            setPayerCpf(userData.cpf || ''); // Assumindo que o CPF está no campo 'cpf'
-            setPayerName(userData.name || ''); // Assumindo que o nome está no campo 'name'
-            setUserEmail(userData.email || session?.user?.email || ''); // Assumindo que o email está no campo 'email'
-            
-            // Se CPF ou Nome estiverem faltando, mostrar o formulário
-            if (!userData.cpf || !userData.name) {
-              setShowPayerDetailsForm(true);
-            }
-          } else {
-            // Se não conseguir buscar dados do usuário, usar email da sessão e mostrar formulário para CPF/Nome
-            setUserEmail(session?.user?.email || '');
-            setShowPayerDetailsForm(true);
-          }
-        } catch (error) {
-          console.error('Erro ao buscar dados do usuário:', error)
-          // Em caso de erro, usar email da sessão e mostrar formulário para CPF/Nome
-          setUserEmail(session?.user?.email || '');
-          setShowPayerDetailsForm(true);
-        }
+      // Preencher dados do usuário logado
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+        // CPF e Nome já têm valores padrão, não precisamos buscar ou exibir formulário
       } else {
-        // Se não houver sessão, garantir que o formulário não seja exibido inicialmente
+        // Se não houver sessão, garantir que o email esteja vazio e o formulário não seja exibido
+        setUserEmail('');
         setShowPayerDetailsForm(false);
       }
     }
-
     fetchData()
   }, [session]) // Dependência da sessão para buscar dados do usuário
 
@@ -231,13 +217,13 @@ export default function PremiumPage() {
         setError('Você precisa estar logado para fazer um pagamento PIX.');
         return;
       }
-      if (!userEmail || !payerCpf || !payerName) {
-        setError('Por favor, preencha seu e-mail, CPF e nome completo para o pagamento PIX.');
-        setShowPayerDetailsForm(true); // Força a exibição do formulário se os dados estiverem faltando
+      // O email do usuário logado já é preenchido automaticamente
+      if (!userEmail) {
+        setError('Não foi possível obter seu e-mail da sessão. Por favor, tente novamente.');
         return;
       }
+      // CPF e Nome já têm valores padrão, não precisamos de validação explícita aqui
     }
-
     setLoading(true);
     setError(null);
 
@@ -251,7 +237,7 @@ export default function PremiumPage() {
           amount: selectedPlan.price,
           payerEmail: userEmail, // Usar o email do usuário logado
           paymentType: selectedPlan.id,
-          payerCpf: payerCpf,
+          payerCpf: payerCpf.replace(/\D/g, ''), // Remove caracteres não numéricos do CPF
           payerName: payerName,
         };
 
@@ -370,7 +356,7 @@ export default function PremiumPage() {
             amount={selectedPlan?.price || 0}
             payerEmail={userEmail}
             paymentType={selectedPlan?.id || ''}
-            payerCpf={payerCpf}
+            payerCpf={payerCpf.replace(/\D/g, '')}
             payerName={payerName}
             paymentProvider={pixPaymentDetails.provider}
             onSuccess={handlePixSuccess}
@@ -562,59 +548,6 @@ export default function PremiumPage() {
                       </div>
                     </button>
                   </div>
-
-                  {/* Formulário de detalhes do pagador para PIX */}
-                  {paymentMethod === 'pix' && showPayerDetailsForm && (
-                    <div className="bg-theme-hover border border-theme-border-primary rounded-xl p-6 mb-6">
-                      <h4 className="text-lg font-bold text-theme-primary mb-4">
-                        Detalhes do Pagador (PIX)
-                      </h4>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="payerEmail" className="block text-sm font-medium text-theme-secondary mb-2">
-                            E-mail
-                          </label>
-                          <input
-                            type="email"
-                            id="payerEmail"
-                            value={userEmail}
-                            onChange={(e) => setUserEmail(e.target.value)}
-                            placeholder="seuemail@exemplo.com"
-                            className="w-full px-4 py-3 rounded-xl border border-theme-border-primary bg-theme-card text-theme-primary focus:ring-2 focus:ring-accent-red focus:border-transparent"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="payerCpf" className="block text-sm font-medium text-theme-secondary mb-2">
-                            CPF
-                          </label>
-                          <input
-                            type="text"
-                            id="payerCpf"
-                            value={payerCpf}
-                            onChange={(e) => setPayerCpf(e.target.value)}
-                            placeholder="000.000.000-00"
-                            className="w-full px-4 py-3 rounded-xl border border-theme-border-primary bg-theme-card text-theme-primary focus:ring-2 focus:ring-accent-red focus:border-transparent"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="payerName" className="block text-sm font-medium text-theme-secondary mb-2">
-                            Nome Completo
-                          </label>
-                          <input
-                            type="text"
-                            id="payerName"
-                            value={payerName}
-                            onChange={(e) => setPayerName(e.target.value)}
-                            placeholder="Seu Nome Completo"
-                            className="w-full px-4 py-3 rounded-xl border border-theme-border-primary bg-theme-card text-theme-primary focus:ring-2 focus:ring-accent-red focus:border-transparent"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {error && (
                     <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 mb-6">

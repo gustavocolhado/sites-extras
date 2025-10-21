@@ -7,7 +7,7 @@ import { config } from 'dotenv';
 config();
 
 // Acessa o token da variável de ambiente
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
+const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 const MERCADO_PAGO_API_URL = 'https://api.mercadopago.com/v1/payments';
 
 export async function POST(request: Request) {
@@ -18,6 +18,12 @@ export async function POST(request: Request) {
     // Verifica a presença de todos os parâmetros, incluindo o paymentType
     if (!userId || !amount || !payerEmail || !paymentType) {
       return NextResponse.json({ error: 'Parâmetros ausentes.' }, { status: 400 });
+    }
+
+    // Verifica se o token de acesso do Mercado Pago está configurado
+    if (!MERCADO_PAGO_ACCESS_TOKEN) {
+      console.error('MERCADO_PAGO_ACCESS_TOKEN não está configurado nas variáveis de ambiente.');
+      return NextResponse.json({ error: 'Configuração do provedor de pagamento ausente.' }, { status: 500 });
     }
 
     // Gera um valor único para o cabeçalho X-Idempotency-Key
@@ -36,18 +42,20 @@ export async function POST(request: Request) {
       },
     }, {
       headers: {
-        Authorization: `Bearer ${ACCESS_TOKEN}`,
+        Authorization: `Bearer ${MERCADO_PAGO_ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
         'X-Idempotency-Key': idempotencyKey,
       },
     });
 
     // Verifica se o pagamento foi criado com sucesso
-    const qrCodeUrl = paymentResponse.data.point_of_interaction?.transaction_data?.qr_code;
+    const qr_code = paymentResponse.data.point_of_interaction?.transaction_data?.qr_code;
+    const qr_code_base64 = paymentResponse.data.point_of_interaction?.transaction_data?.qr_code_base64;
     const paymentId = paymentResponse.data.id;
     const paymentStatus = paymentResponse.data.status;
+    const expires_at = paymentResponse.data.date_of_expiration; // Adicionado expires_at
 
-    if (qrCodeUrl && paymentId) {
+    if (qr_code && qr_code_base64 && paymentId) {
       console.log('🔍 PIX criado no Mercado Pago:', {
         paymentId,
         userId,
@@ -63,7 +71,7 @@ export async function POST(request: Request) {
       const updateResponse = await prisma.user.update({
         where: { id: userId },
         data: {
-          paymentQrCodeUrl: qrCodeUrl,
+          paymentQrCodeUrl: qr_code, // Usar qr_code para o URL/código copia e cola
           paymentType: paymentType,
           paymentStatus: 'pending', // Status temporário até o webhook confirmar
         },
@@ -71,14 +79,15 @@ export async function POST(request: Request) {
 
       console.log('✅ Usuário atualizado com dados do PIX:', {
         userId,
-        paymentQrCodeUrl: qrCodeUrl,
+        paymentQrCodeUrl: qr_code,
         paymentType,
         paymentStatus: 'pending'
       });
 
-      return NextResponse.json({ qrCodeUrl, paymentId, paymentStatus });
+      // Retornar qr_code, qr_code_base64 e expires_at
+      return NextResponse.json({ qr_code, qr_code_base64, paymentId, paymentStatus, expires_at });
     } else {
-      throw new Error('Falha ao criar o pagamento: QR Code ou Payment ID não encontrado.');
+      throw new Error('Falha ao criar o pagamento: QR Code, QR Code Base64 ou Payment ID não encontrado.');
     }
   } catch (error) {
     if (axios.isAxiosError(error)) {

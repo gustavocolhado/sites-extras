@@ -27,6 +27,7 @@ import Header from '@/components/Header'
 import VideoCard from '@/components/VideoCard'
 import Footer from '@/components/Footer'
 import { formatDuration } from '@/utils/formatDuration'
+import ChangePasswordModal from '@/components/ChangePasswordModal'
 
 interface UserProfile {
   id: string
@@ -78,6 +79,7 @@ function ProfileContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [likedVideos, setLikedVideos] = useState<Video[]>([])
   const [favoriteVideos, setFavoriteVideos] = useState<Video[]>([])
@@ -628,7 +630,10 @@ function ProfileContent() {
                 <div className="bg-theme-hover rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-theme-primary mb-4">Conta</h3>
                   <div className="space-y-3">
-                    <button className="w-full text-left text-theme-secondary hover:text-theme-primary transition-colors">
+                    <button
+                      onClick={() => setIsChangePasswordModalOpen(true)}
+                      className="w-full text-left text-theme-secondary hover:text-theme-primary transition-colors"
+                    >
                       Alterar senha
                     </button>
                     <button className="w-full text-left text-theme-secondary hover:text-theme-primary transition-colors">
@@ -671,6 +676,11 @@ function ProfileContent() {
         </div>
       </div>
       <Footer />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+      />
     </div>
   )
 }
@@ -688,4 +698,4 @@ export default function ProfilePage() {
       <ProfileContent />
     </Suspense>
   )
-} 
+}
