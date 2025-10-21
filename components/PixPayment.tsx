@@ -13,6 +13,7 @@ interface PixPaymentProps {
   payerName?: string // Tornar opcional se preferenceId for fornecido
   paymentProvider?: 'mercadopago' | 'efipay' // Tornar opcional se preferenceId for fornecido
   preferenceId?: string // Adicionar preferenceId
+  paymentId?: string; // Adicionar paymentId para verificação manual
   onSuccess: () => void
   onCancel: () => void
 }
@@ -40,7 +41,8 @@ export default function PixPayment({
   paymentProvider,
   preferenceId, // Adicionado preferenceId
   onSuccess,
-  onCancel
+  onCancel,
+  paymentId // Receber paymentId como prop
 }: PixPaymentProps) {
   const [pixData, setPixData] = useState<PixData | null>(null)
   const [copied, setCopied] = useState(false)
@@ -48,6 +50,8 @@ export default function PixPayment({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>('pending')
+  const [checkingPayment, setCheckingPayment] = useState(false); // Estado para o botão "Já fiz o pagamento"
+  const [paymentCheckMessage, setPaymentCheckMessage] = useState<string | null>(null); // Mensagem de status da verificação
 
   // Buscar dados do PIX
   useEffect(() => {
@@ -157,10 +161,53 @@ export default function PixPayment({
     }
   }, [paymentStatus, pixData])
 
+  // Polling para verificar o status do pagamento
+  useEffect(() => {
+    let pollingInterval: NodeJS.Timeout;
+
+    const startPolling = () => {
+      pollingInterval = setInterval(async () => {
+        const currentPaymentId = paymentId || pixData?.payment_id || pixData?.txid;
+        if (currentPaymentId && paymentStatus === 'pending') {
+          try {
+            const response = await fetch('/api/mercado-pago/check-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId: currentPaymentId }),
+            });
+            const data = await response.json();
+
+            if (response.ok && (data.status === 'approved' || data.status === 'paid')) {
+              console.log('✅ Polling: Pagamento aprovado via webhook!');
+              setPaymentStatus('approved');
+              onSuccess(); // Redireciona para a página de sucesso
+              clearInterval(pollingInterval);
+            } else {
+              console.log(`ℹ️ Polling: Pagamento ainda ${data.status}. Aguardando...`);
+            }
+          } catch (err) {
+            console.error('❌ Erro no polling de pagamento:', err);
+            // Não define erro no UI para não interromper a experiência do usuário
+          }
+        } else if (paymentStatus !== 'pending') {
+          clearInterval(pollingInterval); // Para o polling se o pagamento não estiver mais pendente
+        }
+      }, 5000); // Verifica a cada 5 segundos
+    };
+
+    if (pixData && paymentStatus === 'pending') {
+      startPolling();
+    }
+
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, [pixData, paymentStatus, paymentId, onSuccess]);
+
 
   // Atualizar contador regressivo
   useEffect(() => {
-    if (timeLeft <= 0) return
+    if (timeLeft <= 0 || paymentStatus !== 'pending') return // Parar timer se pagamento não estiver pendente
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -174,6 +221,44 @@ export default function PixPayment({
 
     return () => clearInterval(timer)
   }, [timeLeft])
+
+  const handleCheckPayment = async () => {
+    const currentPaymentId = paymentId || pixData?.payment_id || pixData?.txid;
+    if (!currentPaymentId) {
+      setError('Não foi possível encontrar o ID do pagamento para verificar.');
+      return;
+    }
+
+    setCheckingPayment(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/mercado-pago/check-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: currentPaymentId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao verificar o pagamento.');
+      }
+
+      if (data.status === 'approved' || data.status === 'paid') {
+        setPaymentStatus('approved'); // Atualiza o estado local para mostrar a mensagem de sucesso
+        onSuccess(); // Chama a função onSuccess da página pai para redirecionar
+      } else {
+        setPaymentCheckMessage(`Pagamento ainda está ${data.status}. Aguardando confirmação...`);
+        // Não define error aqui, pois não é um erro, mas um status pendente
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro desconhecido ao verificar pagamento.');
+      setPaymentCheckMessage(null); // Limpa a mensagem se houver um erro real
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
 
   const copyPixCode = async () => {
     const codeToCopy = pixData?.provider === 'efipay' ? pixData.pixCopiaECola : pixData?.qr_code;
@@ -398,9 +483,35 @@ export default function PixPayment({
         </div>
       </div>
 
+      {/* Botão "Já fiz o pagamento" */}
+      <div className="mt-6 text-center">
+        <button
+          onClick={handleCheckPayment}
+          disabled={checkingPayment || !paymentId}
+          className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-xl font-bold text-md transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 mx-auto"
+        >
+          {checkingPayment ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span>Verificando...</span>
+            </>
+          ) : (
+            <>
+              <Check className="w-4 h-4" />
+              <span>Já fiz o pagamento</span>
+            </>
+          )}
+        </button>
+        {paymentCheckMessage && (
+          <p className="text-yellow-600 dark:text-yellow-400 text-sm mt-4">
+            {paymentCheckMessage}
+          </p>
+        )}
+        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+      </div>
 
       {/* Botão cancelar */}
-      <div className="text-center">
+      <div className="text-center mt-4">
         <button
           onClick={onCancel}
           className="px-6 py-3 text-theme-secondary hover:text-theme-primary transition-colors font-medium hover:bg-theme-hover rounded-xl"

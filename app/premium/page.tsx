@@ -361,6 +361,7 @@ export default function PremiumPage() {
             paymentProvider={pixPaymentDetails.provider}
             onSuccess={handlePixSuccess}
             onCancel={handlePixCancel}
+            paymentId={pixPaymentDetails.paymentId || pixPaymentDetails.payment_id || pixPaymentDetails.txid} // Passar o paymentId para o PixPayment
           />
         </div>
         <Footer /> {/* Adicionar Footer aqui também */}
