@@ -13,12 +13,30 @@ const MERCADO_PAGO_API_URL = 'https://api.mercadopago.com/v1/payments';
 export async function POST(request: Request) {
   try {
     // Captura os dados da requisição, incluindo o paymentType
-    const { userId, amount, payerEmail, paymentType, promotionCode, sessionId } = await request.json();
+    const { userId, amount, payerEmail, paymentType, promotionCode, sessionId, source, campaign } = await request.json();
 
     // Verifica a presença de todos os parâmetros, incluindo o paymentType
     if (!userId || !amount || !payerEmail || !paymentType) {
       return NextResponse.json({ error: 'Parâmetros ausentes.' }, { status: 400 });
     }
+
+    // 1. Criar uma PaymentSession inicial no banco de dados
+    const newPaymentSession = await prisma.paymentSession.create({
+      data: {
+        userId: userId,
+        amount: amount,
+        plan: paymentType,
+        status: 'pending',
+        paymentMethod: 'mercadopago',
+        userEmail: payerEmail,
+        promotionCode: promotionCode,
+        affiliateId: sessionId, // Se sessionId for o affiliateId
+        source: source,
+        campaign: campaign,
+      },
+    });
+
+    console.log('✅ PaymentSession inicial criada:', newPaymentSession.id);
 
     // Verifica se o token de acesso do Mercado Pago está configurado
     if (!MERCADO_PAGO_ACCESS_TOKEN) {
@@ -27,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     // Gera um valor único para o cabeçalho X-Idempotency-Key
-    const idempotencyKey = `user_${userId}_payment_${Date.now()}`;
+    const idempotencyKey = `user_${userId}_payment_${newPaymentSession.id}`; // Usar o ID da PaymentSession
 
     // Define a descrição do pagamento com base no tipo de plano
     const description = `Pagamento para o site CBR para ${payerEmail}`;
@@ -40,6 +58,7 @@ export async function POST(request: Request) {
       payer: {
         email: payerEmail,
       },
+      external_reference: newPaymentSession.id, // Usar o ID da PaymentSession como external_reference
     }, {
       headers: {
         Authorization: `Bearer ${MERCADO_PAGO_ACCESS_TOKEN}`,
@@ -61,19 +80,35 @@ export async function POST(request: Request) {
         userId,
         plan: paymentType,
         amount,
+        status: paymentStatus,
+        paymentSessionId: newPaymentSession.id // Adicionado para debug
+      });
+
+      // 3. Atualizar a PaymentSession com o paymentId e preferenceId do Mercado Pago
+      await prisma.paymentSession.update({
+        where: { id: newPaymentSession.id },
+        data: {
+          paymentId: paymentId,
+          preferenceId: paymentResponse.data.id.toString(), // O ID da preferência é o próprio paymentId para PIX
+          status: paymentStatus, // Deve ser 'pending' inicialmente
+        },
+      });
+
+      console.log('✅ PaymentSession atualizada com paymentId e preferenceId:', {
+        paymentSessionId: newPaymentSession.id,
+        paymentId: paymentId,
+        preferenceId: paymentResponse.data.id.toString(),
         status: paymentStatus
       });
 
-      // NÃO criar Payment aqui - será criado apenas quando o webhook confirmar o pagamento
-      // NÃO atualizar PaymentSession com paymentId aqui - será atualizado apenas quando o webhook confirmar
-
       // Apenas atualizar o usuário com as informações temporárias do PIX
-      const updateResponse = await prisma.user.update({
+      await prisma.user.update({
         where: { id: userId },
         data: {
           paymentQrCodeUrl: qr_code, // Usar qr_code para o URL/código copia e cola
           paymentType: paymentType,
           paymentStatus: 'pending', // Status temporário até o webhook confirmar
+          paymentId: paymentId, // Salvar o paymentId no usuário também
         },
       });
 
@@ -81,11 +116,12 @@ export async function POST(request: Request) {
         userId,
         paymentQrCodeUrl: qr_code,
         paymentType,
-        paymentStatus: 'pending'
+        paymentStatus: 'pending',
+        paymentId: paymentId
       });
 
       // Retornar qr_code, qr_code_base64 e expires_at
-      return NextResponse.json({ qr_code, qr_code_base64, paymentId, paymentStatus, expires_at });
+      return NextResponse.json({ qr_code, qr_code_base64, paymentId, paymentStatus, expires_at, paymentSessionId: newPaymentSession.id });
     } else {
       throw new Error('Falha ao criar o pagamento: QR Code, QR Code Base64 ou Payment ID não encontrado.');
     }

@@ -48,52 +48,21 @@ export async function POST(request: Request) {
 
       // Buscar PaymentSession usando diferentes estratégias
       let paymentSession = null;
+      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
-      // 1. Tentar buscar por external_reference direto (formato: userId_plan_paymentSessionId)
-      if (paymentInfo?.external_reference) {
-        console.log('🔍 Tentando buscar PaymentSession por external_reference:', paymentInfo.external_reference);
+      // 1. Tentar buscar por external_reference (que agora é o ID da PaymentSession)
+      if (paymentInfo?.external_reference && objectIdRegex.test(paymentInfo.external_reference)) {
+        console.log('🔍 Tentando buscar PaymentSession por external_reference (ID da PaymentSession):', paymentInfo.external_reference);
+        paymentSession = await prisma.paymentSession.findUnique({
+          where: { id: paymentInfo.external_reference }
+        });
         
-        // O external_reference pode ter dois formatos:
-        // a) userId_plan_paymentSessionId (formato premium e landing page)
-        // b) paymentSessionId (formato antigo)
-        
-        const parts = paymentInfo.external_reference.split('_');
-        if (parts.length >= 3) {
-          // Formato: userId_plan_paymentSessionId
-          const paymentSessionId = parts[parts.length - 1];
-          console.log('🔍 Tentando buscar PaymentSession por ID do external_reference:', paymentSessionId);
-          
-          // Verificar se o paymentSessionId é um ObjectId válido
-          const objectIdRegex = /^[0-9a-fA-F]{24}$/;
-          if (objectIdRegex.test(paymentSessionId)) {
-            paymentSession = await prisma.paymentSession.findUnique({
-              where: { id: paymentSessionId }
-            });
-            
-            if (paymentSession) {
-              console.log('✅ PaymentSession encontrada por ID do external_reference:', paymentSession.id);
-            }
-          } else {
-            console.log('⚠️ PaymentSessionId não é um ObjectId válido:', paymentSessionId);
-          }
-        } else {
-          // Formato: paymentSessionId (formato antigo)
-          const objectIdRegex = /^[0-9a-fA-F]{24}$/;
-          if (objectIdRegex.test(paymentInfo.external_reference)) {
-            paymentSession = await prisma.paymentSession.findUnique({
-              where: { id: paymentInfo.external_reference }
-            });
-            
-            if (paymentSession) {
-              console.log('✅ PaymentSession encontrada por external_reference (formato antigo):', paymentSession.id);
-            }
-          } else {
-            console.log('⚠️ External reference não é um ObjectId válido:', paymentInfo.external_reference);
-          }
+        if (paymentSession) {
+          console.log('✅ PaymentSession encontrada por external_reference:', paymentSession.id);
         }
       }
 
-      // 2. Tentar buscar por paymentId na PaymentSession
+      // 2. Tentar buscar por paymentId na PaymentSession (fallback)
       if (!paymentSession) {
         console.log('🔍 Tentando buscar PaymentSession por paymentId:', paymentId);
         paymentSession = await prisma.paymentSession.findFirst({
@@ -104,52 +73,8 @@ export async function POST(request: Request) {
           console.log('✅ PaymentSession encontrada por paymentId:', paymentSession.id);
         }
       }
-
-      // 3. Se ainda não encontrou e temos o email do pagador, criar uma nova PaymentSession
-      if (!paymentSession && paymentInfo?.payer?.email) {
-        console.log('🔍 Tentando criar PaymentSession baseada no email do pagador:', paymentInfo.payer.email);
-        
-        const user = await prisma.user.findFirst({
-          where: { email: paymentInfo.payer.email }
-        });
-        
-        if (user) {
-          // Determinar o plano baseado no valor
-          let plan = 'monthly';
-          const amount = paymentInfo.transaction_amount || 0;
-          
-          if (amount >= 149.90) {
-            plan = 'yearly';
-          } else if (amount >= 99.90) {
-            plan = 'semestral';
-          } else if (amount >= 69.90) {
-            plan = 'quarterly';
-          } else if (amount >= 29.90) {
-            plan = 'monthly';
-          } else {
-            plan = 'lifetime'; // Para valores baixos como 0.50
-          }
-          
-          console.log('🔍 Criando PaymentSession com plano:', plan, 'e valor:', amount);
-          
-          try {
-            paymentSession = await prisma.paymentSession.create({
-              data: {
-                plan: plan,
-                amount: amount,
-                userId: user.id,
-                status: 'pending',
-              },
-            });
-            
-            console.log('✅ PaymentSession criada via webhook:', paymentSession.id);
-          } catch (error) {
-            console.error('❌ Erro ao criar PaymentSession:', error);
-          }
-        } else {
-          console.warn('⚠️ Usuário não encontrado com o email:', paymentInfo.payer.email);
-        }
-      }
+      // A lógica de criação de PaymentSession baseada no email do pagador foi removida,
+      // pois a PaymentSession agora é criada no momento da geração do PIX.
 
       if (!paymentSession) {
         console.error('❌ Nenhuma PaymentSession encontrada para o paymentId:', paymentId);
@@ -283,6 +208,7 @@ export async function POST(request: Request) {
         data: {
           status: paymentStatus,
           paymentId: paymentId, // Cadastrar o paymentId do Mercado Pago
+          preferenceId: paymentId.toString(), // O preferenceId para PIX é o próprio paymentId
         },
       });
 
