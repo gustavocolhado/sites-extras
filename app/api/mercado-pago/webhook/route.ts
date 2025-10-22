@@ -4,7 +4,9 @@ import { convertReaisToDollars, getExchangeRate } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
-    console.log('🔔 Webhook Mercado Pago - Content-Type:', request.headers.get('content-type'));
+    const contentType = request.headers.get('content-type');
+    console.log('🔔 Webhook Mercado Pago - Content-Type:', contentType);
+
     let body;
     try {
       body = await request.json();
@@ -62,6 +64,11 @@ export async function POST(request: Request) {
           status_detail: paymentInfo.status_detail
         });
       } catch (apiError: any) { // Capturar erro específico da API do Mercado Pago
+        if (apiError.status === 404 && apiError.message === 'Payment not found') {
+          console.warn(`⚠️ Pagamento ${paymentId} não encontrado na API do Mercado Pago. Ignorando processamento.`);
+          // Retornar 200 OK para o Mercado Pago, pois a notificação foi recebida, mas o pagamento não existe.
+          return NextResponse.json({ message: `Pagamento ${paymentId} não encontrado na API do Mercado Pago.` });
+        }
         console.error('❌ Erro ao buscar informações do pagamento na API do Mercado Pago:', {
           message: apiError.message,
           status: apiError.status,
