@@ -4,7 +4,16 @@ import { convertReaisToDollars, getExchangeRate } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    console.log('🔔 Webhook Mercado Pago - Content-Type:', request.headers.get('content-type'));
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError: any) {
+      const textBody = await request.text();
+      console.error('❌ Erro ao parsear JSON do webhook. Corpo bruto:', textBody);
+      throw new Error(`Erro ao parsear JSON do webhook: ${jsonError.message}. Corpo bruto: ${textBody}`);
+    }
+
     console.log('🔔 Webhook Mercado Pago recebido (corpo completo):', JSON.stringify(body, null, 2)); // Log do corpo completo
     console.log('🔔 Webhook Mercado Pago recebido:', {
       action: body.action,
