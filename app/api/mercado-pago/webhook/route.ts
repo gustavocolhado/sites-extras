@@ -13,7 +13,8 @@ export async function POST(request: Request) {
     } catch (jsonError: any) {
       const textBody = await request.text();
       console.error('❌ Erro ao parsear JSON do webhook. Corpo bruto:', textBody);
-      throw new Error(`Erro ao parsear JSON do webhook: ${jsonError.message}. Corpo bruto: ${textBody}`);
+      // Retornar 200 OK para o Mercado Pago, pois a notificação foi recebida, mas o corpo é inválido.
+      return NextResponse.json({ error: `Erro ao parsear JSON do webhook: ${jsonError.message}. Corpo bruto: ${textBody}` }, { status: 200 });
     }
 
     console.log('🔔 Webhook Mercado Pago recebido (corpo completo):', JSON.stringify(body, null, 2)); // Log do corpo completo
@@ -36,7 +37,8 @@ export async function POST(request: Request) {
 
       if (!paymentId) {
         console.error('❌ ID do pagamento não fornecido.');
-        return NextResponse.json({ error: 'ID do pagamento não fornecido.' }, { status: 400 });
+        // Retornar 200 OK para o Mercado Pago, pois a notificação foi recebida, mas o ID é inválido.
+        return NextResponse.json({ error: 'ID do pagamento não fornecido.' }, { status: 200 });
       }
 
       console.log('🔍 Processando webhook para paymentId:', paymentId);
@@ -428,6 +430,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Webhook processado com sucesso' });
   } catch (error) {
     console.error('❌ Erro fatal ao processar o webhook:', error); // Log de erro fatal
-    return NextResponse.json({ error: 'Erro fatal ao processar o webhook.' }, { status: 500 });
+    // Retornar 200 OK para o Mercado Pago, mesmo em caso de erro fatal, para evitar reenvios.
+    return NextResponse.json({ error: 'Erro fatal ao processar o webhook.' }, { status: 200 });
   }
 }
