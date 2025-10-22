@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     // Processar tanto 'payment.created' quanto 'payment.updated'
     // A lógica de aprovação final será tratada pela verificação de status do paymentInfo
     if (action === 'payment.updated' || action === 'payment.created') {
+      console.log(`🔔 Webhook acionado para ação: ${action}`); // Log para confirmar que entrou no bloco
       const paymentId = parseInt(data.id); // Converte o ID para número inteiro
 
       if (!paymentId) {
@@ -51,8 +52,14 @@ export async function POST(request: Request) {
           point_of_interaction: paymentInfo.point_of_interaction,
           status_detail: paymentInfo.status_detail
         });
-      } catch (apiError) {
-        console.error('❌ Erro ao buscar informações do pagamento na API:', apiError);
+      } catch (apiError: any) { // Capturar erro específico da API do Mercado Pago
+        console.error('❌ Erro ao buscar informações do pagamento na API do Mercado Pago:', {
+          message: apiError.message,
+          status: apiError.status,
+          details: apiError.cause // Detalhes adicionais do erro
+        });
+        // Se não conseguir obter informações do pagamento, o webhook não pode prosseguir
+        return NextResponse.json({ error: 'Erro ao buscar informações do pagamento na API do Mercado Pago.' }, { status: 500 });
       }
 
       // Buscar PaymentSession usando diferentes estratégias
@@ -401,9 +408,10 @@ export async function POST(request: Request) {
       console.log('ℹ️ Webhook ignorado - ação:', action);
     }
 
+    console.log('✅ Webhook processado com sucesso - finalizando requisição.'); // Log para confirmar o final do processamento
     return NextResponse.json({ message: 'Webhook processado com sucesso' });
   } catch (error) {
-    console.error('❌ Erro ao processar o webhook:', error);
-    return NextResponse.json({ error: 'Erro ao processar o webhook' }, { status: 500 });
+    console.error('❌ Erro fatal ao processar o webhook:', error); // Log de erro fatal
+    return NextResponse.json({ error: 'Erro fatal ao processar o webhook.' }, { status: 500 });
   }
 }
