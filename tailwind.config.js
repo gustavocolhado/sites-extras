@@ -38,11 +38,20 @@ module.exports = {
         // Domain-specific colors (will be overridden by CSS custom properties)
         'domain-primary': 'var(--primary-color, #e74c3c)',
         'domain-primary-hover': 'var(--primary-color-hover, #c0392b)',
+
+        // Cores personalizadas do modal
+        'gray-900': '#0a0a0a',
+        'gray-800': '#111111',
+        'gray-700': '#1a1a1a',
+        'gray-600': '#2a2a2a',
+        'gray-500': '#707070',
+        'gray-400': '#a0a0a0',
+        'gray-300': '#d0d0d0',
       },
       fontFamily: {
-        'sans': ['Roboto', 'system-ui', 'sans-serif']
+        'sans': ['Inter', 'system-ui', 'sans-serif'],
       }
     },
   },
   plugins: [],
-} 
+}
