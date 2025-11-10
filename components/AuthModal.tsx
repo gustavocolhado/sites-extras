@@ -351,7 +351,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           {/* BOTÃO X – FORA DO HEADER, NO TOPO DIREITO */}
           <button
             onClick={onClose}
-            className="absolute -top-6 -right-3 bg-black rounded-full p-1 border-[2px] border-gray-400 text-white hover:text-white"
+            className="absolute -top-6 -right-2 bg-black rounded-full p-1 border-[2px] border-gray-400 text-white hover:text-white"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
