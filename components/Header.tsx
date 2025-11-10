@@ -31,7 +31,7 @@ export default function Header() {
   }
 
   return (
-    <header className="theme-header lg:sticky lg:top-0 z-50 container-full">
+    <header className="theme-header container-full">
       <div className="container-content">
         {/* Mobile Header */}
         <div className="lg:hidden">

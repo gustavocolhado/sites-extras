@@ -10,7 +10,8 @@ import {
   Search, 
   ChevronLeft, 
   ChevronRight,
-  Image
+  Image,
+  Users
 } from 'lucide-react'
 
 interface Category {
@@ -52,6 +53,26 @@ export default function AdminCategories() {
     slug: ''
   })
 
+  // Estado de verificação/sincronização de categorias
+  const [syncOpen, setSyncOpen] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
+  const [syncStats, setSyncStats] = useState<{
+    totalCategories: number
+    totalVideos: number
+    outOfSyncCategories: number
+    syncStatus: string
+  } | null>(null)
+  const [outOfSyncCategories, setOutOfSyncCategories] = useState<Array<{
+    id: string
+    name: string
+    storedCount: number
+    actualCount: number
+  }>>([])
+  const [zeroCategories, setZeroCategories] = useState<Array<{ id: string; name: string }>>([])
+  const [missingCategories, setMissingCategories] = useState<Array<{ name: string; count: number }>>([])
+  const [selectedDeleteIds, setSelectedDeleteIds] = useState<string[]>([])
+
   const fetchCategories = async (page = 1, search = '') => {
     setIsLoading(true)
     try {
@@ -90,6 +111,64 @@ export default function AdminCategories() {
     setEditingCategory(null)
     setFormData({ name: '', images: '', slug: '' })
     setShowModal(true)
+  }
+
+  // Abrir modal de verificação/sincronização
+  const openSyncModal = async () => {
+    setSyncLoading(true)
+    setSyncError(null)
+    try {
+      const res = await fetch('/api/admin/sync-category-counts')
+      if (!res.ok) throw new Error('Falha ao verificar sincronização')
+      const data = await res.json()
+      setSyncStats(data.stats)
+      setOutOfSyncCategories(data.outOfSyncCategories || [])
+      setZeroCategories(data.categoriesWithoutVideos || [])
+      setMissingCategories(data.missingCategories || [])
+      setSelectedDeleteIds((data.categoriesWithoutVideos || []).map((c: any) => c.id))
+      setSyncOpen(true)
+    } catch (err: any) {
+      setSyncError(err.message || 'Erro desconhecido')
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
+  const toggleSelectAllZero = () => {
+    if (selectedDeleteIds.length === zeroCategories.length) {
+      setSelectedDeleteIds([])
+    } else {
+      setSelectedDeleteIds(zeroCategories.map(c => c.id))
+    }
+  }
+
+  const toggleSelectOneZero = (id: string) => {
+    setSelectedDeleteIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const performSync = async (withDeletion: boolean) => {
+    setSyncLoading(true)
+    setSyncError(null)
+    try {
+      const res = await fetch('/api/admin/sync-category-counts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deleteZero: withDeletion && selectedDeleteIds.length === zeroCategories.length,
+          deleteIds: withDeletion ? selectedDeleteIds : []
+        })
+      })
+      if (!res.ok) throw new Error('Falha ao sincronizar')
+      const data = await res.json()
+      setSyncStats(data.stats)
+      setSyncOpen(false)
+      // Recarregar lista para refletir mudanças
+      fetchCategories(pagination.page, searchTerm)
+    } catch (err: any) {
+      setSyncError(err.message || 'Erro desconhecido')
+    } finally {
+      setSyncLoading(false)
+    }
   }
 
   const handleEdit = (category: Category) => {
@@ -185,13 +264,22 @@ export default function AdminCategories() {
           </h1>
           <p className="text-slate-600 mt-2">Gerencie as categorias de vídeos da plataforma</p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nova Categoria</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={openSyncModal}
+            className="flex items-center space-x-2 bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <Users className="w-4 h-4" />
+            <span>Verificar e sincronizar</span>
+          </button>
+          <button
+            onClick={handleCreate}
+            className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Categoria</span>
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -404,6 +492,124 @@ export default function AdminCategories() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de verificação/sincronização */}
+      {syncOpen && (
+        <div className="fixed inset-0 bg-black/50 text-black flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h2 className="text-xl font-bold text-black mb-4">Verificação de categorias</h2>
+            {syncLoading && (
+              <div className="text-black">Processando...</div>
+            )}
+            {syncError && (
+              <div className="text-black mb-3">{syncError}</div>
+            )}
+            {syncStats && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="p-3 bg-slate-50 rounded">
+                    <div className="text-xs text-black">Categorias</div>
+                    <div className="text-lg font-semibold">{syncStats.totalCategories}</div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded">
+                    <div className="text-xs text-black">Vídeos</div>
+                    <div className="text-lg font-semibold">{syncStats.totalVideos}</div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded">
+                    <div className="text-xs text-black">Desatualizadas</div>
+                    <div className="text-lg font-semibold">{syncStats.outOfSyncCategories}</div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded">
+                    <div className="text-xs text-black">Ausentes (serão criadas)</div>
+                    <div className="text-lg font-semibold">{(syncStats as any).missingCategories || 0}</div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded">
+                    <div className="text-xs text-black">Selecionadas p/ exclusão</div>
+                    <div className="text-lg font-semibold">{selectedDeleteIds.length}</div>
+                  </div>
+                </div>
+
+                {outOfSyncCategories.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-black mb-2">Categorias desatualizadas</h3>
+                    <div className="max-h-40 overflow-auto border rounded">
+                      {outOfSyncCategories.map(c => (
+                        <div key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                          <span className="truncate">{c.name}</span>
+                          <span className="text-black">{c.storedCount} → {c.actualCount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="text-sm font-semibold text-black mb-2">Categorias sem vídeos</h3>
+                  {zeroCategories.length === 0 ? (
+                    <div className="text-sm text-black">Nenhuma categoria sem vídeos</div>
+                  ) : (
+                    <div>
+                      <button
+                        onClick={toggleSelectAllZero}
+                        className="text-xs text-black px-2 py-1 bg-slate-100 rounded mr-2"
+                      >
+                        {selectedDeleteIds.length === zeroCategories.length ? 'Desmarcar todas' : 'Selecionar todas'}
+                      </button>
+                      <div className="max-h-40 overflow-auto border rounded mt-2">
+                        {zeroCategories.map(c => (
+                          <label key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                            <span className="truncate">{c.name}</span>
+                            <input
+                              type="checkbox"
+                              checked={selectedDeleteIds.includes(c.id)}
+                              onChange={() => toggleSelectOneZero(c.id)}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {missingCategories.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-black mb-2">Categorias ausentes</h3>
+                    <div className="max-h-40 overflow-auto border rounded">
+                      {missingCategories.map(c => (
+                        <div key={c.name} className="flex items-center justify-between px-3 py-2 text-sm">
+                          <span className="truncate">{c.name}</span>
+                          <span className="text-black">{c.count} vídeos</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    onClick={() => setSyncOpen(false)}
+                    className="px-3 py-2 text-black bg-slate-100 rounded hover:bg-slate-200"
+                  >
+                    Fechar
+                  </button>
+                  <button
+                    onClick={() => performSync(false)}
+                    className="px-3 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                  >
+                    Sincronizar
+                  </button>
+                  <button
+                    onClick={() => performSync(true)}
+                    className="px-3 py-2 text-white bg-red-600 rounded hover:bg-red-700"
+                  >
+                    Sincronizar e excluir selecionadas
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

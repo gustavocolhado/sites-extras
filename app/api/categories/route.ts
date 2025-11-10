@@ -4,6 +4,26 @@ import { prisma } from '@/lib/prisma'
 // Forçar renderização dinâmica
 export const dynamic = 'force-dynamic';
 
+// Construir URL completa para mídias
+function buildMediaUrl(url: string | null): string | null {
+  if (!url) return null
+
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+
+  const mediaUrl = process.env.NEXT_PUBLIC_MEDIA_URL
+  if (!mediaUrl) {
+    console.warn('NEXT_PUBLIC_MEDIA_URL não está configurada')
+    return url
+  }
+
+  const cleanMediaUrl = mediaUrl.endsWith('/') ? mediaUrl.slice(0, -1) : mediaUrl
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`
+
+  return `${cleanMediaUrl}${cleanUrl}`
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -47,8 +67,25 @@ export async function GET(request: NextRequest) {
       prisma.category.count({ where })
     ])
 
+    // Para cada categoria, usar a thumb do vídeo mais recente como imagem
+    const categoriesWithThumbs = await Promise.all(
+      categories.map(async (category) => {
+        const recentVideo = await prisma.video.findFirst({
+          where: { category: { has: category.name } },
+          select: { thumbnailUrl: true },
+          orderBy: { created_at: 'desc' }
+        })
+
+        const thumbUrl = buildMediaUrl(recentVideo?.thumbnailUrl || null)
+        return {
+          ...category,
+          images: thumbUrl || category.images || null
+        }
+      })
+    )
+
     return NextResponse.json({
-      categories,
+      categories: categoriesWithThumbs,
       pagination: {
         page,
         limit,

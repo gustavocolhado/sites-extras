@@ -292,7 +292,7 @@ function CategoryVideoSection({ categoryName }: { categoryName: string }) {
       )}
 
       {/* Video Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         {videos.map((video: any) => (
           <VideoCard
             key={video.id}

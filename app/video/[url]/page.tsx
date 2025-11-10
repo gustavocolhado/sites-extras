@@ -336,8 +336,7 @@ export default function VideoPage() {
       />
       <Layout>
         <Header />
-      <main className="bg-theme-primary min-h-screen mt-5 overflow-x-hidden">
-        <div className="container-content py-6">
+      <main className="w-full container-content mt-5">
           {/* Breadcrumbs */}
           <VideoBreadcrumbs 
             title={video.title}
@@ -355,7 +354,7 @@ export default function VideoPage() {
               )}
           
           {/* Top Bar */}
-          <div className="py-4">
+          <div className="py-4 px-3">
             <div className="flex items-center justify-between">
               {video.creator ? (
                 <button
@@ -392,14 +391,14 @@ export default function VideoPage() {
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex flex-col lg:flex-row gap-4">
             {/* Main Video Player */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               
 
-              <div className="-mx-4 sm:-mx-6 lg:mx-0">
+              <div className="mx-0 w-full">
                 <Player
-                  className="lg:rounded-lg lg:aspect-video"
+                  className="rounded-lg aspect-video"
                   videoUrl={video.videoUrl}
                   poster={video.thumbnailUrl}
                   title={video.title}
@@ -422,7 +421,7 @@ export default function VideoPage() {
               )}
 
               {/* Engagement Buttons */}
-              <div className="flex flex-wrap items-center gap-2 mt-4">
+              <div className="flex flex-wrap items-center gap-2 mt-4 px-3">
                 <button 
                   onClick={handleLike}
                   disabled={actionsLoading}
@@ -487,7 +486,7 @@ export default function VideoPage() {
               </div>
 
               {/* Video Info */}
-              <div className="bg-theme-card border border-theme-primary rounded-lg p-4 mt-4">
+              <div className="bg-theme-card border border-theme-primary rounded-lg p-4 mx-3 mt-4">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-theme-primary">Informações do Vídeo</h2>
                   {isPremium && (
@@ -554,62 +553,11 @@ export default function VideoPage() {
                 </div>
               )}
 
-              {/* Vídeos Relacionados */}
-              <div className="py-2 mt-4 mb-8">
-                <h3 className="text-lg font-bold text-theme-primary mb-4">Vídeos Relacionados</h3>
-                {relatedLoading ? (
-                  <div className="flex justify-center py-8">
-                    <RefreshCw className="w-6 h-6 animate-spin text-theme-primary" />
-                  </div>
-                ) : relatedVideos.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-1">
-                    {relatedVideos.slice(0, 20).map((relatedVideo, index) => {
-                      const items = []
-                      
-                      // Adicionar o vídeo relacionado
-                      items.push(
-                        <VideoCard
-                          key={relatedVideo.id}
-                          id={relatedVideo.id}
-                          title={relatedVideo.title}
-                          duration={relatedVideo.duration}
-                          thumbnailUrl={relatedVideo.thumbnailUrl}
-                          videoUrl={relatedVideo.videoUrl || relatedVideo.id}
-                          isIframe={relatedVideo.iframe || false}
-                          premium={relatedVideo.premium || false}
-                          viewCount={relatedVideo.viewCount}
-                          category={relatedVideo.category}
-                          creator={relatedVideo.creator || undefined}
-                          uploader={null}
-                        />
-                      )
-                      
-                      // Adicionar anúncio a cada 8 vídeos relacionados para usuários não premium
-                      if (!session?.user?.premium && (index + 1) % 8 === 0) {
-                        items.push(
-                          <VideoAdBanner key={`ad-related-${index}`} />
-                        )
-                      }
-                      
-                      // Adicionar PremiumVideoTeaser a cada 12 vídeos relacionados para usuários não premium
-                      if (!session?.user?.premium && (index + 1) % 12 === 0) {
-                        items.push(
-                          <PremiumVideoTeaser key={`teaser-related-${index}`} />
-                        )
-                      }
-                      
-                      return items
-                    }).flat()}
-                  </div>
-                ) : (
-                  <p className="text-theme-muted text-sm text-center py-8">Nenhum vídeo relacionado encontrado</p>
-                )}
-              </div>
             </div>
 
             {/* Sidebar com Anúncios Desktop */}
             {!isPremium && (
-              <div className="hidden lg:block lg:w-80 space-y-4">
+              <div className="hidden lg:block lg:w-80 flex-shrink-0 space-y-4">
                 {/* Anúncio 1 - 300x250 */}
                   <div className="w-full h-[250px] flex items-center justify-center">
                     <AdIframe300x250 />
@@ -627,7 +575,51 @@ export default function VideoPage() {
               </div>
             )}
           </div>
-        </div>
+
+          {/* Vídeos Relacionados - full width */}
+          <div className="py-2 mt-4 mb-8 px-3">
+            <h3 className="text-lg font-bold text-theme-primary mb-4">Vídeos Relacionados</h3>
+            {relatedLoading ? (
+              <div className="flex justify-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin text-theme-primary" />
+              </div>
+            ) : relatedVideos.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-2">
+                {relatedVideos.slice(0, 20).map((relatedVideo, index) => {
+                  const items = []
+
+                  items.push(
+                    <VideoCard
+                      key={relatedVideo.id}
+                      id={relatedVideo.id}
+                      title={relatedVideo.title}
+                      duration={relatedVideo.duration}
+                      thumbnailUrl={relatedVideo.thumbnailUrl}
+                      videoUrl={relatedVideo.videoUrl || relatedVideo.id}
+                      isIframe={relatedVideo.iframe || false}
+                      premium={relatedVideo.premium || false}
+                      viewCount={relatedVideo.viewCount}
+                      category={relatedVideo.category}
+                      creator={relatedVideo.creator || undefined}
+                      uploader={null}
+                    />
+                  )
+
+                  if (!session?.user?.premium && (index + 1) % 8 === 0) {
+                    items.push(<VideoAdBanner key={`ad-related-${index}`} />)
+                  }
+
+                  if (!session?.user?.premium && (index + 1) % 12 === 0) {
+                    items.push(<PremiumVideoTeaser key={`teaser-related-${index}`} />)
+                  }
+
+                  return items
+                }).flat()}
+              </div>
+            ) : (
+              <p className="text-theme-muted text-sm text-center py-8">Nenhum vídeo relacionado encontrado</p>
+            )}
+          </div>
       </main>
 
       {/* Indicador de Preload - só mostra se há vídeos relacionados e preload real */}

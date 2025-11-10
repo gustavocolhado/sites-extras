@@ -95,7 +95,7 @@ export default function Creators() {
                 e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTI0IDI0QzI4LjQxODMgMjQgMzIgMjAuNDE4MyAzMiAxNkMzMiAxMS41ODE3IDI4LjQxODMgOCAyNCA4QzE5LjU4MTcgOCAxNiAxMS41ODE3IDE2IDE2QzE2IDIwLjQxODMgMTkuNTgxNyAyNCAyNCAyNFoiIGZpbGw9IiNEMUQ1REIiLz4KPHBhdGggZD0iTTQwIDQwQzQwIDMyLjI2ODAxIDMyLjgzNiAyNiAyNCAyNkMxNS4xNjQgMjYgOCAzMi4yNjgwMSA4IDQwIiBmaWxsPSIjRDFENURCIi8+Cjwvc3ZnPgo='
               }}
             />
-            <span className={`truncate max-w-20 md:max-w-none ${!isPremium ? 'blur-sm' : ''}`}>
+            <span className={`text-md truncate max-w-20 px-2 font-semibold md:max-w-none ${!isPremium ? 'blur-sm' : ''}`}>
               {creator.name}
             </span>
             <span className="bg-accent-red text-white text-xs rounded-full px-1 md:px-1.5 py-0.5 flex-shrink-0">

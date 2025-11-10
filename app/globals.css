@@ -253,9 +253,22 @@ a {
 }
 
 .container-content {
-  max-width: 1980px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 0px;
+}
+
+/* Expandir container em telas muito grandes */
+@media (min-width: 1536px) {
+  .container-content {
+    max-width: 1536px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .container-content {
+    max-width: 1800px;
+  }
 }
 
 

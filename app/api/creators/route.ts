@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '12')
     const skip = (page - 1) * limit
     const timestampParam = searchParams.get('timestamp')
+    const search = (searchParams.get('search') || '').trim()
 
     // Se houver timestamp, embaralhar determinísticamente usando seed
     if (timestampParam) {
@@ -69,7 +70,13 @@ export async function GET(request: NextRequest) {
           image: true,
           created_at: true,
           update_at: true
-        }
+        },
+        where: search ? {
+          name: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        } : undefined
       })
 
       const totalCreators = allCreators.length
@@ -85,15 +92,8 @@ export async function GET(request: NextRequest) {
             where: { creator: creator.name }
           })
 
-          if (creator.image) {
-            return {
-              ...creator,
-              qtd: actualVideoCount,
-              image: buildMediaUrl(creator.image)
-            }
-          }
-
-          const randomVideo = await prisma.video.findFirst({
+          // Sempre usar a thumb do vídeo mais recente como imagem do criador
+          const recentVideo = await prisma.video.findFirst({
             where: { creator: creator.name },
             select: { thumbnailUrl: true },
             orderBy: { created_at: 'desc' }
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
           return {
             ...creator,
             qtd: actualVideoCount,
-            image: buildMediaUrl(randomVideo?.thumbnailUrl || null)
+            image: buildMediaUrl(recentVideo?.thumbnailUrl || null)
           }
         })
       )
@@ -134,7 +134,13 @@ export async function GET(request: NextRequest) {
         image: true,
         created_at: true,
         update_at: true
-      }
+      },
+      where: search ? {
+        name: {
+          contains: search,
+          mode: 'insensitive'
+        }
+      } : undefined
     })
 
     // Para cada creator, processar imagem, contar vídeos e buscar fallback se necessário
@@ -147,17 +153,8 @@ export async function GET(request: NextRequest) {
           }
         })
 
-        // Se já tem imagem, processar a URL
-        if (creator.image) {
-          return {
-            ...creator,
-            qtd: actualVideoCount, // Usar contagem em tempo real
-            image: buildMediaUrl(creator.image)
-          }
-        }
-
-        // Buscar um vídeo aleatório do creator para usar como imagem
-        const randomVideo = await prisma.video.findFirst({
+        // Sempre usar a thumb do vídeo mais recente como imagem do criador
+        const recentVideo = await prisma.video.findFirst({
           where: {
             creator: creator.name
           },
@@ -165,20 +162,27 @@ export async function GET(request: NextRequest) {
             thumbnailUrl: true
           },
           orderBy: {
-            created_at: 'desc' // Pegar o mais recente primeiro
+            created_at: 'desc'
           }
         })
 
         return {
           ...creator,
-          qtd: actualVideoCount, // Usar contagem em tempo real
-          image: buildMediaUrl(randomVideo?.thumbnailUrl || null)
+          qtd: actualVideoCount,
+          image: buildMediaUrl(recentVideo?.thumbnailUrl || null)
         }
       })
     )
 
     // Conta total de criadores
-    const totalCreators = await prisma.creator.count()
+    const totalCreators = await prisma.creator.count({
+      where: search ? {
+        name: {
+          contains: search,
+          mode: 'insensitive'
+        }
+      } : undefined
+    })
 
     // Se não houver criadores no banco, retorna array vazio
     if (creatorsWithImages.length === 0) {

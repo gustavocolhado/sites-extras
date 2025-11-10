@@ -16,8 +16,8 @@ export default function Container({ children, className = '', fullWidth = false 
   }
 
   return (
-    <div className={`max-w-content mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 ${className}`}>
+    <div className={`mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 max-w-[1280px] 2xl:max-w-[1536px] 3xl:max-w-[1800px] ${className}`}>
       {children}
     </div>
   )
-} 
+}

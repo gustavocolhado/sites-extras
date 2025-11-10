@@ -234,7 +234,7 @@ export default function CreatorPage() {
              </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mb-8">
                 {videos.map((video) => (
                   <VideoCard
                     key={video.id}

@@ -14,7 +14,7 @@ const AdIframe300x250 = () => {
     'cornofilmando.com': { id: 'a4942c79', name: 'a4942c79', zoneid: '4' },
     'cornomanso.com.br': { id: 'ad821a11', name: 'ad821a11', zoneid: '7' },
     'cornoplay.com': { id: 'a78040f8', name: 'a78040f8', zoneid: '10' },
-    'cornosbrasil.com': { id: 'ae4c53c1', name: 'ae4c53c1', zoneid: '2' },
+    'cornosbrasil.com': { id: 'ac26bb91', name: 'ac26bb91', zoneid: '2' },
     'cornostv.com': { id: 'ac9facd9', name: 'ac9facd9', zoneid: '13' },
     'cornosvip.com': { id: 'a8db843b', name: 'a8db843b', zoneid: '16' },
     'cornotube.com': { id: 'a2c3465f', name: 'a2c3465f', zoneid: '19' },
@@ -37,8 +37,8 @@ const AdIframe300x250 = () => {
     const hostname = window.location.hostname;
 
     // Procurar configuração correspondente ao domínio
-    let newId = 'ae4c53c1'; // Valor padrão
-    let newName = 'ae4c53c1'; // Valor padrão
+    let newId = 'ac26bb91'; // Valor padrão
+    let newName = 'ac26bb91'; // Valor padrão
     let newZoneId = '2'; // Valor padrão
 
     // Verificar se o domínio ou subdomínio está no mapeamento

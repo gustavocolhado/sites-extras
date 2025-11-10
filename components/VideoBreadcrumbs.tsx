@@ -13,7 +13,7 @@ export default function VideoBreadcrumbs({ title, category, videoUrl }: VideoBre
   const categorySlug = category[0]?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'categoria'
   
   return (
-    <nav className="flex items-center space-x-2 text-sm text-theme-muted mb-4" aria-label="Breadcrumb">
+    <nav className="flex items-center space-x-2 text-sm text-theme-muted mb-4 mt-4 px-3" aria-label="Breadcrumb">
       <Link 
         href="/" 
         className="flex items-center hover:text-theme-primary transition-colors"

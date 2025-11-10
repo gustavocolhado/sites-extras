@@ -6,7 +6,7 @@ interface CreatorsResponse {
   pagination: Pagination
 }
 
-export function useInfiniteCreators() {
+export function useInfiniteCreators(searchTerm: string = '') {
   const [creators, setCreators] = useState<Creator[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -18,6 +18,8 @@ export function useInfiniteCreators() {
     totalPages: 0,
     hasMore: false
   })
+  // Seed determinístico por sessão para manter lista aleatória consistente durante o scroll
+  const [seed] = useState<number>(() => Date.now())
 
   const fetchCreators = useCallback(async (page: number = 1, append: boolean = false) => {
     try {
@@ -27,7 +29,16 @@ export function useInfiniteCreators() {
         setLoadingMore(true)
       }
 
-      const response = await fetch(`/api/creators?page=${page}&limit=12`)
+      // Passa o seed como timestamp para embaralhar determinísticamente no backend
+      const qs = new URLSearchParams({
+        page: String(page),
+        limit: '12',
+        timestamp: String(seed)
+      })
+      if (searchTerm && searchTerm.trim() !== '') {
+        qs.set('search', searchTerm.trim())
+      }
+      const response = await fetch(`/api/creators?${qs.toString()}`)
       
       if (!response.ok) {
         throw new Error('Erro ao buscar criadores')
@@ -50,17 +61,19 @@ export function useInfiniteCreators() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [])
+  }, [seed, searchTerm])
 
   const loadMore = useCallback(() => {
-    if (!loadingMore && pagination.hasMore) {
+    if (!loading && !loadingMore && pagination.hasMore) {
       fetchCreators(pagination.page + 1, true)
     }
-  }, [loadingMore, pagination.hasMore, pagination.page, fetchCreators])
+  }, [loading, loadingMore, pagination.hasMore, pagination.page, fetchCreators])
 
   useEffect(() => {
+    // Ao mudar o termo de busca, reiniciar paginação e refazer busca
+    setPagination(prev => ({ ...prev, page: 1 }))
     fetchCreators(1, false)
-  }, [fetchCreators])
+  }, [fetchCreators, searchTerm])
 
   return {
     creators,
@@ -71,4 +84,4 @@ export function useInfiniteCreators() {
     loadMore,
     refetch: () => fetchCreators(1, false)
   }
-} 
+}
