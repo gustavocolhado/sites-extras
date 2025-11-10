@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const { 
       email, 
       password, 
-      name, 
+      name,
       source = 'website',
       planId,
       pixId,
@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = normalizeEmail(email)
 
     // Validação básica
-    if (!normalizedEmail || !password || !name) {
+    if (!normalizedEmail || !password) {
       return NextResponse.json(
-        { error: 'Email, senha e nome são obrigatórios' },
+        { error: 'Email e senha são obrigatórios' },
         { status: 400 }
       )
     }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       data: {
         email: normalizedEmail,
         password: hashedPassword,
-        name,
+        ...(name ? { name } : {}),
         signupSource: source,
         premium: isPremium,
         emailVerified: new Date(),
@@ -125,4 +125,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

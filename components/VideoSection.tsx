@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Loader2 } from 'lucide-react'
 import VideoCard from './VideoCard'
@@ -24,18 +24,17 @@ export default function VideoSection() {
   
   // Sempre usar filtro aleatório na página inicial para alternar os vídeos
   const effectiveFilter = 'random'
+  // Timestamp fixo por refresh para garantir ordem diferente a cada atualização
+  const refreshTimestamp = useMemo(() => Date.now(), [])
   const effectiveCategory = isPremium ? vipCategory : (selectedCategory || undefined)
-  
-
-  
-
 
   const { videos, pagination, loading, error, refetch, forceRefetch } = useVideos({
     page: currentPage,
     limit: 50,
     filter: effectiveFilter,
     category: effectiveCategory,
-    isPremium: isPremium
+    isPremium: isPremium,
+    timestamp: refreshTimestamp
   })
 
   // Remover alternância automática - vídeos só mudam ao atualizar a página
@@ -146,7 +145,7 @@ export default function VideoSection() {
       )}
 
       {/* Video Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5">
         {videos.map((video, index) => {
           const items = []
           
@@ -230,4 +229,4 @@ export default function VideoSection() {
       )}
     </Section>
   )
-} 
+}

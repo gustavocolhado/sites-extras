@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Creator } from '@/types/common'
 
-export function useCreators() {
+type Options = {
+  limit?: number
+  page?: number
+  timestamp?: number
+}
+
+export function useCreators(options?: Options) {
   const [creators, setCreators] = useState<Creator[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -10,7 +16,14 @@ export function useCreators() {
     const fetchCreators = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/creators')
+        const params = new URLSearchParams()
+        if (options?.limit) params.set('limit', String(options.limit))
+        if (options?.page) params.set('page', String(options.page))
+        if (options?.timestamp) params.set('timestamp', String(options.timestamp))
+
+        const qs = params.toString()
+        const url = qs ? `/api/creators?${qs}` : '/api/creators'
+        const response = await fetch(url)
 
         if (!response.ok) {
           throw new Error('Erro ao buscar criadores')
@@ -32,7 +45,7 @@ export function useCreators() {
     }
 
     fetchCreators()
-  }, [])
+  }, [options?.limit, options?.page, options?.timestamp])
 
   return { creators, loading, error }
-} 
+}

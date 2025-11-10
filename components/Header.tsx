@@ -36,7 +36,7 @@ export default function Header() {
         {/* Mobile Header */}
         <div className="lg:hidden">
           {/* Top Row */}
-          <div className="flex items-center justify-between py-3">
+          <div className="flex items-center justify-between py-3 px-2">
             <div className="flex items-center space-x-4">
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -64,7 +64,10 @@ export default function Header() {
               >
                 <User size={24} />
               </button>
-              <button className="text-theme-primary hover:text-accent-red transition-colors relative">
+              <button
+                onClick={() => router.push('/profile?tab=settings')}
+                className="text-theme-primary hover:text-accent-red transition-colors relative"
+              >
                 <Settings size={24} />
                 <img src="https://hatscripts.github.io/circle-flags/flags/br.svg" width="14" className="absolute -top-0.5 -right-0.5" />
               </button>
@@ -72,8 +75,8 @@ export default function Header() {
           </div>
 
           {/* Bottom Row */}
-          <div className="flex items-center justify-center space-x-6 py-2 border-t border-b border-theme-input text-sm">
-            <a href="/premium" className="flex items-center space-x-1.5 text-theme-primary font-medium">
+          <div className="flex items-center justify-center space-x-6 py-2 border-t border-theme-input text-sm">
+            <a href="/premium" className="flex items-center space-x-1.5 text-theme-primary font-semibold">
               <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">VIP</span>
               <span>Premium</span>
             </a>
@@ -298,7 +301,7 @@ export default function Header() {
           </div>
 
           {/* Navigation */}
-          <div className="flex items-center space-x-6 py-2 border-t border-theme-input overflow-x-auto">
+          <div className="flex items-center space-x-6 py-2 border-t border-theme-input font-semibold overflow-x-auto">
             <a href="/" className="text-accent-red border-b-2 border-accent-red pb-1 text-sm font-medium whitespace-nowrap">Home</a>
             <a href="/videos" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Videos</a>
             <a href="/creators" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Criadores</a>

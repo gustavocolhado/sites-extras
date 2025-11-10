@@ -26,14 +26,100 @@ function buildMediaUrl(url: string | null): string | null {
   return `${cleanMediaUrl}${cleanUrl}`
 }
 
+// Embaralhamento determinístico baseado em seed
+function shuffleArray<T>(array: T[], seed: number): T[] {
+  const result = [...array]
+  let currentIndex = result.length
+  let randomSeed = seed || Date.now()
+
+  function pseudoRandom() {
+    let t = (randomSeed += 0x6D2B79F5)
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+
+  while (currentIndex !== 0) {
+    const randomIndex = Math.floor(pseudoRandom() * currentIndex)
+    currentIndex--
+    ;[result[currentIndex], result[randomIndex]] = [result[randomIndex], result[currentIndex]]
+  }
+
+  return result
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '12')
     const skip = (page - 1) * limit
+    const timestampParam = searchParams.get('timestamp')
 
-    // Busca criadores
+    // Se houver timestamp, embaralhar determinísticamente usando seed
+    if (timestampParam) {
+      const seed = parseInt(timestampParam)
+      // Buscar todos os criadores com campos essenciais
+      const allCreators = await prisma.creator.findMany({
+        select: {
+          id: true,
+          name: true,
+          qtd: true,
+          description: true,
+          image: true,
+          created_at: true,
+          update_at: true
+        }
+      })
+
+      const totalCreators = allCreators.length
+
+      // Embaralhar com seed e aplicar paginação
+      const shuffled = shuffleArray(allCreators, isNaN(seed) ? Date.now() : seed)
+      const paged = shuffled.slice(skip, skip + limit)
+
+      // Processar imagem e contagem real apenas para os selecionados
+      const creatorsWithImages = await Promise.all(
+        paged.map(async (creator) => {
+          const actualVideoCount = await prisma.video.count({
+            where: { creator: creator.name }
+          })
+
+          if (creator.image) {
+            return {
+              ...creator,
+              qtd: actualVideoCount,
+              image: buildMediaUrl(creator.image)
+            }
+          }
+
+          const randomVideo = await prisma.video.findFirst({
+            where: { creator: creator.name },
+            select: { thumbnailUrl: true },
+            orderBy: { created_at: 'desc' }
+          })
+
+          return {
+            ...creator,
+            qtd: actualVideoCount,
+            image: buildMediaUrl(randomVideo?.thumbnailUrl || null)
+          }
+        })
+      )
+
+      return NextResponse.json({
+        creators: creatorsWithImages,
+        pagination: {
+          page,
+          limit,
+          total: totalCreators,
+          totalPages: Math.ceil(totalCreators / limit),
+          hasMore: page * limit < totalCreators
+        }
+      })
+    }
+
+    // Busca criadores (ordenados por popularidade) quando não há aleatoriedade por timestamp
     const creators = await prisma.creator.findMany({
       orderBy: {
         qtd: 'desc'
@@ -125,4 +211,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

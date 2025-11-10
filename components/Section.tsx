@@ -20,14 +20,14 @@ export default function Section({
   }
 
   const paddingClasses = {
-    sm: 'py-4',
-    md: 'py-4 md:py-6',
-    lg: 'py-6 md:py-8',
-    xl: 'py-8 md:py-12'
+    sm: 'pt-4',
+    md: 'pt-4 md:pt-6',
+    lg: 'pt-4 md:pt-8',
+    xl: 'pt-4 md:pt-12'
   }
 
   return (
-    <section className={`container-full ${backgroundClasses[background]} ${paddingClasses[padding]} ${className}`}>
+    <section className={`container-full ${backgroundClasses[background]} px-2 ${paddingClasses[padding]} ${className}`}>
       <div className="container-content">
         {children}
       </div>

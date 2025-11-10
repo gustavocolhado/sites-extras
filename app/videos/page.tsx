@@ -59,14 +59,16 @@ const filterOptions: FilterOption[] = [
 
 export default function VideosPage() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>('recent')
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('random')
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const refreshTimestamp = useMemo(() => Date.now(), [])
 
   const { videos, loading, pageLoading, error, pagination, refetch, changePage } = useVideos({
     filter: selectedFilter,
     search: searchTerm,
-    page: currentPage
+    page: currentPage,
+    timestamp: refreshTimestamp
   })
   
   const { data: session } = useSession()

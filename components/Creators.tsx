@@ -1,10 +1,12 @@
 import Section from './Section'
 import { Eye } from 'lucide-react'
 import { useCreators } from '@/hooks/useCreators'
+import { useMemo } from 'react'
 import { usePremiumStatus } from '@/hooks/usePremiumStatus'
 
 export default function Creators() {
-  const { creators, loading, error } = useCreators()
+  const refreshTimestamp = useMemo(() => Date.now(), [])
+  const { creators, loading, error } = useCreators({ timestamp: refreshTimestamp, limit: 12 })
   const { isPremium, loading: premiumLoading } = usePremiumStatus()
 
   const handleCreatorClick = (creator: any) => {
@@ -71,23 +73,23 @@ export default function Creators() {
 
   return (
     <Section background="white" padding="md">
-      <h2 className="text-xl md:text-2xl font-bold text-theme-primary mb-4">
+      <h2 className="text-xl md:text-2xl font-bold text-theme-primary md:mb-3">
         CRIADORES EM DESTAQUE
       </h2>
-      <div className="md:hidden text-xs text-theme-secondary mb-2">
+      <div className="md:hidden text-xs text-theme-secondary mb-3">
         ← Deslize para ver mais →
       </div>
-      <div className="flex flex-nowrap md:flex-wrap gap-2 md:gap-3 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
+      <div className="flex flex-nowrap md:flex-wrap gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
         {creators.map((creator) => (
           <button
             key={creator.id}
             onClick={() => handleCreatorClick(creator)}
-            className="flex items-center space-x-1 md:space-x-2 px-2 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors theme-tag-secondary hover:theme-tag-primary"
+            className="flex items-center space-x-1 px-2 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors theme-tag-secondary hover:theme-tag-primary"
           >
             <img
               src={creator.image || '/creators/default-creator.jpg'}
               alt={creator.name}
-              className="w-4 h-4 md:w-5 md:h-5 rounded-full object-cover flex-shrink-0"
+              className="w-14 h-14 rounded-full object-cover flex-shrink-0"
               onError={(e) => {
                 // Fallback para placeholder se a imagem não carregar
                 e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTI0IDI0QzI4LjQxODMgMjQgMzIgMjAuNDE4MyAzMiAxNkMzMiAxMS41ODE3IDI4LjQxODMgOCAyNCA4QzE5LjU4MTcgOCAxNiAxMS41ODE3IDE2IDE2QzE2IDIwLjQxODMgMTkuNTgxNyAyNCAyNCAyNFoiIGZpbGw9IiNEMUQ1REIiLz4KPHBhdGggZD0iTTQwIDQwQzQwIDMyLjI2ODAxIDMyLjgzNiAyNiAyNCAyNkMxNS4xNjQgMjYgOCAzMi4yNjgwMSA4IDQwIiBmaWxsPSIjRDFENURCIi8+Cjwvc3ZnPgo='
@@ -113,4 +115,4 @@ export default function Creators() {
       </div>
     </Section>
   )
-} 
+}

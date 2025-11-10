@@ -2,191 +2,175 @@
 
 import Link from 'next/link'
 import { 
-  Play, 
-  Users, 
-  Crown, 
-  User, 
-  Shield, 
-  Mail, 
-  Lock, 
+  ChevronRight,
+  Crown,
   FileText,
   Heart,
-  Star
+  Lock,        // sempre visível
+  Mail,
+  Play,
+  Shield,
+  Star,
+  Users
 } from 'lucide-react'
 import { useDomainContext } from '@/contexts/DomainContext'
+
+const footerLinks = {
+  navigation: [
+    { href: '/videos', label: 'Todos os Vídeos', icon: Play },
+    { href: '/creators', label: 'Criadores', icon: Users },
+    { href: '/premium', label: 'Premium', icon: Crown },
+    { href: '/profile', label: 'Meu Perfil', icon: Shield },
+  ],
+  support: [
+    { href: '/contato', label: 'Contato', icon: Mail },
+    { href: '/ajuda', label: 'Central de Ajuda', icon: Users },
+    { href: '/faq', label: 'FAQ', icon: FileText },
+    { href: '/regras', label: 'Regras da Comunidade', icon: Shield },
+  ],
+  legal: [
+    { href: '/privacy', label: 'Política de Privacidade', icon: Shield },
+    { href: '/termos', label: 'Termos de Uso', icon: FileText },
+    { href: '/remocao', label: 'Remoção de Conteúdo', icon: Shield },
+    { href: '/dmca', label: 'DMCA', icon: FileText },
+  ],
+}
+
+const trustBadges = [
+  { icon: Shield, text: 'Conteúdo Verificado' },
+  { icon: Lock, text: 'Privacidade Garantida' },
+  { icon: Crown, text: 'Qualidade Premium' },
+]
 
 export default function Footer() {
   const { domainConfig, isLoading } = useDomainContext()
 
-  // Fallback para quando o domínio ainda não foi carregado
   const siteName = isLoading || !domainConfig ? 'Cornos Brasil' : domainConfig.siteName
   const siteDescription = isLoading || !domainConfig 
     ? 'A melhor plataforma de vídeos amadores do Brasil. Conteúdo exclusivo e de qualidade para você.'
     : domainConfig.description
 
   return (
-    <footer className="relative bg-gradient-to-br from-theme-card via-theme-card to-theme-primary/10 border-t border-theme-border-primary mt-auto overflow-hidden py-12">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 left-0 w-32 h-32 bg-theme-primary rounded-full -translate-x-16 -translate-y-16"></div>
-        <div className="absolute bottom-0 right-0 w-24 h-24 bg-theme-primary rounded-full translate-x-12 translate-y-12"></div>
-        <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-theme-primary rounded-full"></div>
-      </div>
+    <footer className="relative bg-[#0a0a0a] border-t border-white/10 mt-auto overflow-hidden">
+  {/* Background sutil */}
+  <div className="absolute inset-0 opacity-5 pointer-events-none">
+    <div className="absolute top-0 left-0 w-40 h-40 bg-theme-primary/30 rounded-full blur-3xl -translate-x-20 -translate-y-20"></div>
+    <div className="absolute bottom-0 right-0 w-32 h-32 bg-theme-primary/20 rounded-full blur-3xl translate-x-16 translate-y-16"></div>
+    <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-theme-primary/10 rounded-full blur-xl"></div>
+  </div>
 
-      <div className="container-content mx-auto relative z-10">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-          {/* Brand Section */}
-          <div className="text-center lg:text-left">
-            <div className="flex items-center justify-center lg:justify-start mb-4">
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-theme-primary to-theme-primary/70 rounded-xl flex items-center justify-center shadow-lg">
-                  <Heart className="w-6 h-6 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-theme-primary rounded-full animate-pulse"></div>
+  <div className="container-content mx-auto relative z-10 px-4 py-12 md:py-16 text-gray-300">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 mb-12">
+          {/* Brand Column */}
+          <div className="space-y-5 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-3 pt-4">
+              <div className="relative group">
               </div>
-              <h3 className="text-theme-primary font-bold text-xl ml-3">{siteName}</h3>
+                <img
+                  src="/imgs/logo.png"
+                  alt={siteName}
+                  className="w-48 object-contain"
+                />
             </div>
-            <p className="text-theme-secondary text-sm leading-relaxed">
+
+            <p className="text-theme-secondary text-sm leading-relaxed max-w-xs mx-auto md:mx-0">
               {siteDescription}
             </p>
-            <div className="flex items-center justify-center lg:justify-start mt-4 space-x-2">
-              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <span className="text-theme-secondary text-xs ml-2">5.0</span>
+
+            <div className="flex items-center justify-center md:justify-start gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-4 h-4 text-yellow-500 fill-current" />
+              ))}
+              <span className="ml-2 text-xs text-theme-secondary font-medium">5.0 (12k+ avaliações)</span>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="text-center lg:text-left">
-            <h4 className="text-theme-primary font-semibold mb-6 flex items-center justify-center lg:justify-start">
-              <Play className="w-4 h-4 mr-2" />
-              Navegação
-            </h4>
-            <div className="space-y-3">
-              <Link href="/videos" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <div className="w-1 h-1 bg-theme-primary rounded-full mr-3 group-hover:w-2 transition-all duration-300"></div>
-                Todos os Vídeos
-              </Link>
-              <Link href="/creators" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <div className="w-1 h-1 bg-theme-primary rounded-full mr-3 group-hover:w-2 transition-all duration-300"></div>
-                Criadores
-              </Link>
-              <Link href="/premium" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <div className="w-1 h-1 bg-theme-primary rounded-full mr-3 group-hover:w-2 transition-all duration-300"></div>
-                Premium
-              </Link>
-              <Link href="/profile" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <div className="w-1 h-1 bg-theme-primary rounded-full mr-3 group-hover:w-2 transition-all duration-300"></div>
-                Meu Perfil
-              </Link>
+          {/* Navigation Links */}
+          {Object.entries(footerLinks).map(([key, links]) => (
+            <div key={key} className="space-y-5 text-center md:text-left">
+              <h4 className="font-semibold text-theme-primary flex items-center justify-center md:justify-start gap-2">
+                {key === 'navigation' && <Play className="w-4 h-4" />}
+                {key === 'support' && <Shield className="w-4 h-4" />}
+                {key === 'legal' && <Lock className="w-4 h-4" />}
+                {key === 'navigation' ? 'Navegação' : key === 'support' ? 'Suporte' : 'Legal'}
+              </h4>
+              <ul className="space-y-2.5">
+                {links.map(({ href, label, icon: Icon }) => (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      className="group flex items-center justify-center md:justify-start gap-2 text-theme-secondary hover:text-theme-primary transition-all duration-300 text-sm font-medium"
+                    >
+                      <Icon className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" />
+                      <span className="relative">
+                        {label}
+                        <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-theme-primary transition-all duration-300 group-hover:w-full"></span>
+                      </span>
+                      <ChevronRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
-
-          {/* Support Links */}
-          <div className="text-center lg:text-left">
-            <h4 className="text-theme-primary font-semibold mb-6 flex items-center justify-center lg:justify-start">
-              <Shield className="w-4 h-4 mr-2" />
-              Suporte
-            </h4>
-            <div className="space-y-3">
-              <Link href="/contato" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <Mail className="w-3 h-3 mr-3" />
-                Contato
-              </Link>
-              <Link href="/ajuda" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <Users className="w-3 h-3 mr-3" />
-                Central de Ajuda
-              </Link>
-              <Link href="/faq" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <FileText className="w-3 h-3 mr-3" />
-                FAQ
-              </Link>
-              <Link href="/enviar" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <Crown className="w-3 h-3 mr-3" />
-                Enviar Conteúdo
-              </Link>
-            </div>
-          </div>
-
-          {/* Legal Links */}
-          <div className="text-center lg:text-left">
-            <h4 className="text-theme-primary font-semibold mb-6 flex items-center justify-center lg:justify-start">
-              <Lock className="w-4 h-4 mr-2" />
-              Legal
-            </h4>
-            <div className="space-y-3">
-              <Link href="/privacy" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <Shield className="w-3 h-3 mr-3" />
-                Privacidade
-              </Link>
-              <Link href="/termos" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <FileText className="w-3 h-3 mr-3" />
-                Termos de Uso
-              </Link>
-              <Link href="/remocao" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <Shield className="w-3 h-3 mr-3" />
-                Remoção de Conteúdo
-              </Link>
-              <Link href="/dmca" className="flex items-center justify-center lg:justify-start text-theme-secondary hover:text-theme-primary transition-all duration-300 hover:translate-x-1 group">
-                <FileText className="w-3 h-3 mr-3" />
-                DMCA
-              </Link>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Bottom Section */}
-        <div className="border-t border-theme-border-primary/50 pt-8">
-          <div className="text-center space-y-4">
-            <div className="flex flex-wrap justify-center items-center gap-4 text-xs text-theme-secondary">
-              <span className="flex items-center">
-                <Shield className="w-3 h-3 mr-1" />
-                Conteúdo Verificado
-              </span>
-              <span className="flex items-center">
-                <Lock className="w-3 h-3 mr-1" />
-                Privacidade Garantida
-              </span>
-              <span className="flex items-center">
-                <Crown className="w-3 h-3 mr-1" />
-                Premium Quality
-              </span>
+        <div className="border-t border-white/10 pt-8">
+          <div className="text-center space-y-6">
+            {/* Trust Badges */}
+            <div className="flex flex-wrap justify-center gap-4 text-xs text-theme-secondary">
+              {trustBadges.map(({ icon: Icon, text }, i) => (
+                <span key={i} className="flex items-center gap-1.5 bg-theme-card/50 px-3 py-1.5 rounded-full border border-theme-border-primary/20">
+                  <Icon className="w-3.5 h-3.5" />
+                  {text}
+                </span>
+              ))}
             </div>
-            
-            <div className="space-y-2">
-              <p className="text-theme-secondary text-xs leading-relaxed max-w-3xl mx-auto">
-                Todas as pessoas aqui descritas tinham pelo menos 18 anos de idade: 18 USC 2257 Declarações de conformidade de requisitos de manutenção de registros
+
+            {/* Compliance & Logos */}
+            <div className="space-y-4">
+              <p className="text-theme-secondary text-xs max-w-4xl mx-auto leading-relaxed">
+                Todas as pessoas aqui descritas tinham pelo menos 18 anos de idade. 
+                <br className="hidden sm:inline" />
+                <strong>18 U.S.C. 2257</strong> — Declarações de conformidade de manutenção de registros.
               </p>
-              
-              {/* RTA and ASACP Logos */}
-              <div className="flex justify-center items-center space-x-6 mt-4">
-                <div className="css-rta-logo">
-                  <svg version="1.1" id="Camada_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 34 20" enableBackground="new 0 0 34 20" xmlSpace="preserve" className="w-8 h-5">
-                    <path fill="#FFFFFF" d="M29.3,3.8H0v12.4h3.8v-5c1.4-0.2,1.8,0.7,1.8,0.7l2.3,4.3h4.4c0,0-0.8-1.6-1.5-2.8c-0.4-0.9-1-1.7-1.7-2.3 c-0.2-0.2-0.5-0.3-0.8-0.4c3.5-0.8,3-3.8,3-3.8h3.9v9.4h3.7V6.8h5.3l-3.6,9.4h3.9l0.6-2.1h4.4l0.6,2.1h4L29.3,3.8z M5.7,8.9H3.8V6.3 h1.8c0,0,1.7-0.1,1.7,1.3S5.7,8.9,5.7,8.9z M25.8,11.5L27.2,7l1.4,4.4H25.8z"></path>
+
+              <div className="flex justify-center items-center gap-6">
+                {/* RTA Logo */}
+                <a
+                  href="https://www.rtalabel.org/"
+                  target="_blank"
+                  rel="nofollow noopener"
+                  aria-label="Restricted To Adults"
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  <svg className="w-9 h-6" viewBox="0 0 34 20" fill="currentColor">
+                    <path d="M29.3,3.8H0v12.4h3.8v-5c1.4-0.2,1.8,0.7,1.8,0.7l2.3,4.3h4.4c0,0-0.8-1.6-1.5-2.8c-0.4-0.9-1-1.7-1.7-2.3 c-0.2-0.2-0.5-0.3-0.8-0.4c3.5-0.8,3-3.8,3-3.8h3.9v9.4h3.7V6.8h5.3l-3.6,9.4h3.9l0.6-2.1h4.4l0.6,2.1h4L29.3,3.8z M5.7,8.9H3.8V6.3 h1.8c0,0,1.7-0.1,1.7,1.3S5.7,8.9,5.7,8.9z M25.8,11.5L27.2,7l1.4,4.4H25.8z"></path>
                   </svg>
-                </div>
-                <a className="rta" href="http://www.asacp.org/index.php?content=aboutus" rel="nofollow noopener" aria-label="Association of Sites Advocating Child Protection" title="Association of Sites Advocating Child Protection" target="_blank">
-                  <div className="css-asacp-logo">
-                    <svg version="1.1" id="Camada_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 34 20" enableBackground="new 0 0 34 20" xmlSpace="preserve" className="w-8 h-5">
-                      <path fill="#FFFFFF" d="M32.2,6.5h-9.1c-1.8,0-2.6,2.2-2.6,3.4c0,0.8,0.2,1.5,0.5,2.2h-0.8L18,6.5H9c-1.1,0-1.8,1-1.8,2.2	s2.1,1.7,2.6,1.8c0.5,0.1,1.4,0.2,1.4,1s-0.9,0.7-0.9,0.7H7.1L5,6.5H2.7l-2.7,7h2.2l0.4-1.2H5l0.4,1.2h5.7c0.9-0.2,1.6-0.8,1.9-1.6 c0.1-0.5,0.1-1.1-0.1-1.6c-0.3-1-2.5-1.3-2.8-1.4C9.8,8.7,9.2,8.7,9.2,8.2c0-0.5,0.6-0.5,0.6-0.5h5.6l-2.3,5.8h2.2l0.4-1.2h2.4 l0.4,1.2h6.4c1.8,0,2.3-2.2,2.3-2.2l-1.7-0.6c0,0-0.4,1.3-1.6,1.3s-1.3-0.8-1.3-2.3S23.8,8,23.8,8h4.4v5.5h2.1v-2.7H32 c1.1,0,2-1,2-2.1c0,0,0,0,0-0.1C34,6.7,32.2,6.5,32.2,6.5z M3,10.8l0.8-2.6l0.8,2.6H3z M16,10.8l0.8-2.6l0.8,2.6H16z M31.2,9.5h-1 V7.9h1.1C31.7,8,32,8.3,32,8.7C32,9.1,31.7,9.5,31.2,9.5z"></path>
-                    </svg>
-                  </div>
+                </a>
+
+                {/* ASACP Logo */}
+                <a
+                  href="http://www.asacp.org"
+                  target="_blank"
+                  rel="nofollow noopener"
+                  aria-label="ASACP Member"
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  <svg className="w-9 h-6" viewBox="0 0 34 20" fill="currentColor">
+                    <path d="M32.2,6.5h-9.1c-1.8,0-2.6,2.2-2.6,3.4c0,0.8,0.2,1.5,0.5,2.2h-0.8L18,6.5H9c-1.1,0-1.8,1-1.8,2.2 s2.1,1.7,2.6,1.8c0.5,0.1,1.4,0.2,1.4,1s-0.9,0.7-0.9,0.7H7.1L5,6.5H2.7l-2.7,7h2.2l0.4-1.2H5l0.4,1.2h5.7c0.9-0.2,1.6-0.8,1.9-1.6 c0.1-0.5,0.1-1.1-0.1-1.6c-0.3-1-2.5-1.3-2.8-1.4C9.8,8.7,9.2,8.7,9.2,8.2c0-0.5,0.6-0.5,0.6-0.5h5.6l-2.3,5.8h2.2l0.4-1.2h2.4 l0.4,1.2h6.4c1.8,0,2.3-2.2,2.3-2.2l-1.7-0.6c0,0-0.4,1.3-1.6,1.3s-1.3-0.8-1.3-2.3S23.8,8,23.8,8h4.4v5.5h2.1v-2.7H32 c1.1,0,2-1,2-2.1c0,0,0,0,0-0.1C34,6.7,32.2,6.5,32.2,6.5z M3,10.8l0.8-2.6l0.8,2.6H3z M16,10.8l0.8-2.6l0.8,2.6H16z M31.2,9.5h-1 V7.9h1.1C31.7,8,32,8.3,32,8.7C32,9.1,31.7,9.5,31.2,9.5z"></path>
+                  </svg>
                 </a>
               </div>
-              
-              <p className="text-theme-secondary text-xs">
-                © 2025 {siteName}. Todos os direitos reservados.
+
+              <p className="text-theme-secondary text-xs font-medium">
+                © {new Date().getFullYear()} {siteName}. Todos os direitos reservados.
               </p>
             </div>
-            
-
           </div>
         </div>
       </div>
     </footer>
   )
-} 
+}

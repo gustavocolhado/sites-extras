@@ -80,7 +80,7 @@ export default function Pagination({
   }
 
   return (
-    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}>
+    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 pb-5 ${className}`}>
       {/* Informações */}
       {showInfo && safeTotalItems > 0 && (
         <div className="text-sm text-theme-secondary">

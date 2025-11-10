@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Layout from '@/components/Layout'
 import Header from '@/components/Header'
@@ -198,13 +198,16 @@ function CategoryVideoSection({ categoryName }: { categoryName: string }) {
   
   // Para usuários premium, sempre usar filtro aleatório
   const effectiveFilter = isPremium ? 'random' : sortBy
+  // Timestamp fixo por refresh quando aleatório, para ordem diferente a cada atualização
+  const refreshTimestamp = useMemo(() => Date.now(), [])
   
   const { videos, pagination, loading, error, refetch } = useVideos({
     page: currentPage,
     limit: 20,
     filter: effectiveFilter,
     category: selectedCategory,
-    isPremium: isPremium
+    isPremium: isPremium,
+    timestamp: effectiveFilter === 'random' ? refreshTimestamp : undefined
   })
 
   const handlePageChange = (page: number) => {
