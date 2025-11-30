@@ -1350,7 +1350,7 @@ export default function LandingPage() {
                Receba notificações de novos vídeos, conteúdo exclusivo e fique por dentro de tudo que acontece!
              </p>
              <a
-               href="https://t.me/+olxxKcXpwmU1YTIx"
+               href="https://t.me/cornosbrasill"
                target="_blank"
                rel="noopener noreferrer"
                className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-bold transition-colors text-lg"

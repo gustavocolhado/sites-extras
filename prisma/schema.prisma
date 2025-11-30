@@ -45,6 +45,43 @@ model Video {
   videoTags    VideoTag[] @relation("VideoToTags")
 }
 
+// Novo modelo mapeado para a coleção "videos"
+model Videos {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  title        String?  // Título em português (pt)
+  title_en     String?  // Título em inglês
+  title_es     String?  // Título em espanhol
+  category     String[]
+  description  String?
+  description_en     String?  // Título em inglês
+  description_es     String?  // Título em espanhol
+  url          String @unique
+  url_en       String?  // Título em inglês
+  url_es       String?  // Título em espanhol
+  viewCount    Int
+  likesCount   Int
+  videoUrl     String
+  thumbnailUrl String
+  duration     Float?
+  premium      Boolean
+  creator      String?
+  iframe       Boolean @default(false)
+  trailerUrl   String?
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @default(now())
+  userId       String?  @db.ObjectId
+  User         User?    @relation(fields: [userId], references: [id])
+  comments     Comment[]
+  likes        UserLike[]
+  favorites    UserFavorite[]
+  history      UserHistory[]
+  videoTags    VideoTag[] @relation("VideosToTags")
+  // Ajuste do nome da relação para combinar com VideoTag
+  // (Videos <-> VideoTag) usa "VideosToTags"
+
+  @@map("videos")
+}
+
 model Tag {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   name      String    @unique
@@ -58,17 +95,21 @@ model Tag {
 model VideoTag {
   id       String   @id @default(auto()) @map("_id") @db.ObjectId
   videoId  String   @db.ObjectId
+  legacyVideoId String? @db.ObjectId
   tagId    String   @db.ObjectId
-  video    Video    @relation(fields: [videoId], references: [id], name: "VideoToTags")
+  videos   Videos   @relation(fields: [videoId], references: [id], name: "VideosToTags")
+  video    Video?   @relation(fields: [legacyVideoId], references: [id], name: "VideoToTags")
   tag      Tag      @relation(fields: [tagId], references: [id], name: "TagToVideos")
 }
 
 model Comment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   videoId   String   @db.ObjectId
+  legacyVideoId String? @db.ObjectId
   content   String
   createdAt DateTime @default(now())
-  video     Video    @relation(fields: [videoId], references: [id])
+  video     Videos   @relation(fields: [videoId], references: [id])
+  legacyVideo Video? @relation(fields: [legacyVideoId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
   userId    String   @db.ObjectId
 }
@@ -172,7 +213,8 @@ model User {
   favorites     UserFavorite[]
   history       UserHistory[]
   categories    Category[]
-  videos        Video[]
+  videos        Videos[]
+  legacyVideos  Video[]
   comments      Comment[]
   payments      Payment[]
   creators      Creator[]
@@ -293,33 +335,42 @@ model UserLike {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   userId  String @db.ObjectId
   videoId String @db.ObjectId
+  legacyVideoId String? @db.ObjectId
   user    User  @relation(fields: [userId], references: [id])
-  video   Video @relation(fields: [videoId], references: [id])
+  video   Videos @relation(fields: [videoId], references: [id])
+  legacyVideo Video? @relation(fields: [legacyVideoId], references: [id])
 
   @@unique([userId, videoId]) // Garante que cada combinação de userId e videoId seja única
+  @@unique([userId, legacyVideoId])
 }
 
 model UserFavorite {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   userId  String @db.ObjectId
   videoId String @db.ObjectId
+  legacyVideoId String? @db.ObjectId
   user    User  @relation(fields: [userId], references: [id])
-  video   Video @relation(fields: [videoId], references: [id])
+  video   Videos @relation(fields: [videoId], references: [id])
+  legacyVideo Video? @relation(fields: [legacyVideoId], references: [id])
   createdAt DateTime @default(now())
 
   @@unique([userId, videoId]) // Garante que cada combinação de userId e videoId seja única
+  @@unique([userId, legacyVideoId])
 }
 
 model UserHistory {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   userId  String @db.ObjectId
   videoId String @db.ObjectId
+  legacyVideoId String? @db.ObjectId
   user    User  @relation(fields: [userId], references: [id])
-  video   Video @relation(fields: [videoId], references: [id])
+  video   Videos @relation(fields: [videoId], references: [id])
+  legacyVideo Video? @relation(fields: [legacyVideoId], references: [id])
   watchedAt DateTime @default(now())
   watchDuration Int? // Duração em segundos que o usuário assistiu
 
   @@unique([userId, videoId]) // Garante que cada combinação de userId e videoId seja única
+  @@unique([userId, legacyVideoId])
 }
 
 // Modelo otimizado para contagem de visitas, evitando registros duplicados.

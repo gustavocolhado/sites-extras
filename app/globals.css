@@ -271,6 +271,21 @@ a {
   }
 }
 
+.scrollbar-hide {
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE/Edge */
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  /* Chrome/Safari */
+  display: none;
+}
+
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
 
 
 /* ========================================
@@ -303,4 +318,12 @@ a {
 /* Dark theme compatibility */
 .dark video {
   background-color: #000;
+}
+
+/* Tabs horizontal scroll improvements */
+.tabs-scroll {
+  touch-action: pan-x;
+  overscroll-behavior-x: none; /* impede bounce horizontal */
+  scroll-padding-left: 8px; /* evita corte no primeiro item ao snap/scroll */
+  scroll-padding-right: 8px; /* evita corte no último item ao snap/scroll */
 }

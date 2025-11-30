@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tag as TagIcon } from 'lucide-react';
+import { Tag as TagIcon, Search, ArrowDownAZ, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
+import Section from '@/components/Section';
 
 interface Tag {
   id: string;
@@ -18,6 +19,8 @@ export default function TagsPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'alpha' | 'count'>('alpha');
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -59,28 +62,82 @@ export default function TagsPage() {
     <Layout>
       <Header />
       <main className="min-h-screen bg-theme-primary">
-        <div className="container mx-auto py-8 px-4">
-          <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-            Todas as Tags
-          </h1>
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-            <CardContent className="p-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {tags.map((tag) => (
-                  <Link href={`/tags/${tag.slug}`} key={tag.id}>
-                    <div className="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-indigo-100 hover:shadow-md transition-all duration-200 cursor-pointer border border-slate-200">
-                      <TagIcon className="w-5 h-5 text-indigo-500 mr-3" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-slate-800 capitalize">{tag.name}</p>
-                        <p className="text-xs text-slate-500">{tag.qtd} vídeos</p>
-                      </div>
+        <Section background="white" padding="lg">
+          <h1 className="text-3xl font-bold mb-4 text-theme-primary">Todas as Tags</h1>
+
+          {/* Filtros */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 flex items-center bg-white dark:bg-black rounded-lg overflow-hidden border border-theme-input">
+              <Search className="w-4 h-4 text-theme-secondary mx-3" />
+              <input
+                type="text"
+                placeholder="Buscar tags..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 bg-transparent py-2 pr-3 focus:outline-none text-theme-primary"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSortBy('alpha')}
+                className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${sortBy === 'alpha' ? 'border-accent-red text-accent-red' : 'border-theme-input text-theme-secondary hover:text-theme-primary'}`}
+                aria-pressed={sortBy === 'alpha'}
+              >
+                <ArrowDownAZ className="w-4 h-4" />
+                <span className="text-sm">A–Z</span>
+              </button>
+              <button
+                onClick={() => setSortBy('count')}
+                className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${sortBy === 'count' ? 'border-accent-red text-accent-red' : 'border-theme-input text-theme-secondary hover:text-theme-primary'}`}
+                aria-pressed={sortBy === 'count'}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span className="text-sm">Popular</span>
+              </button>
+            </div>
+          </div>
+
+          <Card className="bg-theme-card border border-theme-border-primary shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              {(() => {
+                const normalized = query.trim().toLowerCase();
+                const filtered = tags
+                  .filter(t => !normalized || t.name.toLowerCase().includes(normalized))
+                  .sort((a, b) => sortBy === 'alpha'
+                    ? a.name.localeCompare(b.name)
+                    : b.qtd - a.qtd
+                  );
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-center py-10">
+                      <TagIcon className="w-10 h-10 text-theme-muted mx-auto mb-3" />
+                      <p className="text-theme-secondary">Nenhuma tag encontrada</p>
                     </div>
-                  </Link>
-                ))}
-              </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {filtered.map((tag) => (
+                      <Link href={`/tags/${tag.slug}`} key={tag.id} aria-label={`Abrir tag ${tag.name}`}>
+                        <div className="flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer border border-theme-border-primary bg-theme-primary/5 hover:bg-theme-hover">
+                          <TagIcon className="w-5 h-5 text-accent-red mr-3 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-theme-primary capitalize truncate">{tag.name}</p>
+                            <span className="inline-flex items-center text-xs text-theme-secondary mt-0.5">
+                              {tag.qtd} vídeos
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
-        </div>
+        </Section>
       </main>
     </Layout>
   );

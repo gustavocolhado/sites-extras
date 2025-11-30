@@ -227,7 +227,7 @@ function ProfileContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20">
         {/* Header do Perfil */}
         <div className="bg-theme-card rounded-2xl p-8 mb-8 border border-theme-border-primary">
-          <div className="flex items-center space-x-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
             {/* Avatar */}
             <div className="relative">
               <div className="w-24 h-24 bg-gradient-to-br from-accent-red to-red-700 rounded-full flex items-center justify-center">
@@ -249,7 +249,7 @@ function ProfileContent() {
             </div>
 
             {/* Informações do Usuário */}
-            <div className="flex-1">
+            <div className="flex-1 w-full">
               <div className="flex items-center space-x-4 mb-2">
                 <h1 className="text-3xl font-bold text-theme-primary">
                   {userProfile?.name || 'Usuário'}
@@ -276,62 +276,84 @@ function ProfileContent() {
               )}
             </div>
 
-            {/* Botões de Ação */}
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setEditing(!editing)}
-                className="bg-theme-hover hover:bg-theme-border-primary text-theme-primary px-4 py-2 rounded-xl font-medium transition-all duration-300 flex items-center space-x-2"
-              >
-                <Edit className="w-4 h-4" />
-                <span>Editar</span>
-              </button>
-              
-              <button
-                onClick={handleSignOut}
-                className="bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-xl font-medium transition-all duration-300 flex items-center space-x-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sair</span>
-              </button>
+              {/* Botões de Ação */}
+              <div className="mt-4 sm:mt-2 flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => setEditing(!editing)}
+                  className="bg-theme-hover hover:bg-theme-border-primary text-theme-primary px-3 sm:px-4 py-2 rounded-xl font-medium transition-all duration-300 flex items-center justify-center sm:justify-start gap-2 whitespace-nowrap min-w-0 w-full sm:w-auto sm:flex-none"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Editar</span>
+                </button>
+
+                <button
+                  onClick={handleSignOut}
+                  className="bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-3 sm:px-4 py-2 rounded-xl font-medium transition-all duration-300 flex items-center justify-center sm:justify-start gap-2 whitespace-nowrap min-w-0 w-full sm:w-auto sm:flex-none"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sair</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Tabs de Navegação */}
         <div className="bg-theme-card rounded-2xl p-2 mb-8 border border-theme-border-primary">
-          <div className="flex space-x-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const count = getTabCount(tab.id)
-              
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id)
-                    // Atualizar URL sem recarregar a página
-                    const url = new URL(window.location.href)
-                    url.searchParams.set('tab', tab.id)
-                    window.history.pushState({}, '', url.toString())
-                  }}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all duration-300 ${
-                    activeTab === tab.id
-                      ? 'bg-accent-red text-white'
-                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                  {count !== undefined && count > 0 && (
-                    <span className="bg-white/20 text-white px-2 py-1 rounded-full text-xs">
-                      {count}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+  <div className="overflow-x-auto overflow-y-hidden scrollbar-hide">
+    <div className="flex gap-3 min-w-max py-1">
+      {tabs.map((tab) => {
+        const Icon = tab.icon
+        const count = getTabCount(tab.id)
+        const isActive = activeTab === tab.id
+
+        return (
+          <button
+  key={tab.id}
+  id={`tab-${tab.id}`}
+  onClick={() => {
+    setActiveTab(tab.id)
+    const url = new URL(window.location.href)
+    url.searchParams.set('tab', tab.id)
+    window.history.pushState({}, '', url.toString())
+  }}
+  className={`
+    shrink-0 snap-start
+    flex items-center gap-2
+    px-4 py-3
+    rounded-xl font-medium text-sm
+    transition-all duration-300
+    w-max
+    ${isActive
+      ? 'bg-accent-red text-white shadow-sm'
+      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+    }
+  `}
+>
+  <Icon className="w-4 h-4" />
+
+  <span className="truncate max-w-[80px]" title={tab.label}>
+    {tab.label}
+  </span>
+
+  {count !== undefined && count > 0 && (
+    <span
+      className={`
+        w-5 h-5 flex items-center justify-center 
+        rounded-full text-xs font-bold
+        ${isActive ? 'bg-white text-accent-red' : 'bg-white/20 text-white'}
+      `}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  )}
+</button>
+
+
+        )
+      })}
+    </div>
+  </div>
+</div>
+
 
         {/* Conteúdo das Tabs */}
         <div className="bg-theme-card rounded-2xl p-8 border border-theme-border-primary">

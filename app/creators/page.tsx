@@ -131,14 +131,16 @@ export default function CreatorsPage() {
                 {creators.map((creator) => (
                   <div
                     key={creator.id}
-                    onClick={() => handleCreatorClick(creator)}
-                    className="bg-theme-card rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-105 flex flex-col"
+                    onClick={() => { if (!isPremium) return; handleCreatorClick(creator) }}
+                    role="button"
+                    aria-disabled={!isPremium}
+                    className={`bg-theme-card rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform flex flex-col overflow-hidden ${isPremium ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed'}`}
                   >
                     {/* Foto do criador (topo) */}
                     <img
                       src={creator.image || '/creators/default-creator.jpg'}
                       alt={creator.name}
-                      className="w-full aspect-square object-cover rounded-t-lg"
+                      className={`w-full aspect-square object-cover rounded-t-lg ${!isPremium ? 'blur-2xl' : ''}`}
                       onError={(e) => {
                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiNGM0Y0RjYiLz4KPHBhdGggZD0iTTI0IDI0QzI4LjQxODMgMjQgMzIgMjAuNDE4MyAzMiAxNkMzMiAxMS41ODE3IDI4LjQxODMgOCAyNCA4QzE5LjU4MTcgOCAxNiAxMS41ODE3IDE2IDE2QzE2IDIwLjQxODMgMTkuNTgxNyAyNCAyNCAyNFoiIGZpbGw9IiNEMUQ1REIiLz4KPHBhdGggZD0iTTQwIDQwQzQwIDMyLjI2ODAxIDMyLjgzNiAyNiAyNCAyNkMxNS4xNjQgMjYgOCAzMi4yNjgwMSA4IDQwIiBmaWllbGw9IiNEMUQ1REIiLz4KPC9zdmc+Cg=='
                       }}

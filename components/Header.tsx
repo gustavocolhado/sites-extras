@@ -76,11 +76,15 @@ export default function Header() {
 
           {/* Bottom Row */}
           <div className="flex items-center justify-center space-x-6 py-2 border-t border-theme-input text-sm">
-            <a href="/premium" className="flex items-center space-x-1.5 text-theme-primary font-semibold">
+            <a
+              href={isPremium ? '/' : '/premium'}
+              className="flex items-center space-x-1.5 text-theme-primary font-semibold"
+              aria-label={isPremium ? 'Premium' : 'Seja Premium'}
+            >
               <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">VIP</span>
-              <span>Premium</span>
+              <span>{isPremium ? 'Premium' : 'Seja Premium'}</span>
             </a>
-            <a href="https://t.me/cornosbrasil1" target="blank" className="flex items-center space-x-1.5 text-theme-primary font-medium">
+            <a href="https://t.me/cornosbrasill" target="blank" className="flex items-center space-x-1.5 text-theme-primary font-medium">
               <Send size={18} />
               <span>Telegram</span>
             </a>
@@ -92,7 +96,7 @@ export default function Header() {
 
           {/* Mobile Search Input */}
           {isMobileSearchOpen && (
-            <div className="py-2">
+            <div className="py-2 w-full">
               <form onSubmit={(e) => {
                 e.preventDefault()
                 const formData = new FormData(e.currentTarget)
@@ -101,7 +105,7 @@ export default function Header() {
                   router.push(`/search?q=${encodeURIComponent(searchTerm.trim())}`)
                   setIsMobileSearchOpen(false)
                 }
-              }} className="flex items-center bg-white dark:bg-black rounded-lg overflow-hidden border border-theme-input">
+              }} className="flex items-center bg-white dark:bg-black rounded-lg overflow-hidden border border-theme-input w-full">
                 <input
                   name="search"
                   type="text"
