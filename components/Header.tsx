@@ -86,7 +86,7 @@ export default function Header() {
             </a>
             <a href="https://t.me/cornosbrasill" target="blank" className="flex items-center space-x-1.5 text-theme-primary font-medium">
               <Send size={18} />
-              <span>Telegram</span>
+              <span>Telegram Grátis</span>
             </a>
             <a href="/creators" className="flex items-center space-x-1.5 text-theme-primary font-medium">
               <Heart size={18} />
