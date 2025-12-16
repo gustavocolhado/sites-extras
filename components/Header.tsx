@@ -320,7 +320,7 @@ export default function Header() {
             <a href="/contact" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Contato</a>
             <a href="/support" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Suporte</a>
             <a 
-              href="https://t.me/+olxxKcXpwmU1YTIx" 
+              href="https://t.me/cornosbrasill" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-blue-500 hover:text-blue-400 transition-colors text-sm font-medium whitespace-nowrap"
