@@ -84,7 +84,7 @@ export default function Header() {
               <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">VIP</span>
               <span>{isPremium ? 'Premium' : 'Seja Premium'}</span>
             </a>
-            <a href="https://t.me/cornosbrasill" target="blank" className="flex items-center space-x-1.5 text-theme-primary font-medium">
+            <a href="https://t.me/cornosbrasill2" target="blank" className="flex items-center space-x-1.5 text-theme-primary font-medium">
               <Send size={18} />
               <span>Telegram Grátis</span>
             </a>
@@ -320,7 +320,7 @@ export default function Header() {
             <a href="/contact" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Contato</a>
             <a href="/support" className="text-theme-secondary hover:text-theme-primary transition-colors text-sm whitespace-nowrap">Suporte</a>
             <a 
-              href="https://t.me/cornosbrasill" 
+              href="https://t.me/cornosbrasill2" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-blue-500 hover:text-blue-400 transition-colors text-sm font-medium whitespace-nowrap"
